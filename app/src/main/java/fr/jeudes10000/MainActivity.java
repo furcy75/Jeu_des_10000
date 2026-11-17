@@ -52,6 +52,12 @@ public final class MainActivity extends Activity {
         TEXT.put("scoreboard", new String[]{"Scores", "Scoreboard", "Marcador"});
         TEXT.put("target", new String[]{"Objectif : 10 000 points", "Target: 10,000 points", "Objetivo: 10 000 puntos"});
         TEXT.put("record", new String[]{"Inscrire un score", "Record a score", "Anotar puntos"});
+        TEXT.put("current_turn", new String[]{"À vous de jouer : ", "Current player: ", "Turno de: "});
+        TEXT.put("paliers", new String[]{"Paliers récents", "Recent score tiers", "Últimos niveles"});
+        TEXT.put("no_paliers", new String[]{"Aucun palier. Il faut marquer 600 points en un tour pour commencer.", "No score tier yet. Score 600 points in one turn to open.", "Aún no hay nivel. Anota 600 puntos en un turno para empezar."});
+        TEXT.put("palier", new String[]{"Palier", "Tier", "Nivel"});
+        TEXT.put("removed", new String[]{"retiré", "removed", "retirado"});
+        TEXT.put("need_600", new String[]{"Il faut au moins 600 points en un seul tour pour démarrer. Score ignoré.", "At least 600 points in one turn are required to open. Score ignored.", "Se necesitan al menos 600 puntos en un turno para empezar. Puntuación ignorada."});
         TEXT.put("select_player", new String[]{"Choisir un joueur", "Choose a player", "Elegir jugador"});
         TEXT.put("points_hint", new String[]{"Points (négatif pour une correction)", "Points (negative to correct)", "Puntos (negativos para corregir)"});
         TEXT.put("save_score", new String[]{"Ajouter les points", "Add points", "Añadir puntos"});
@@ -73,13 +79,14 @@ public final class MainActivity extends Activity {
         TEXT.put("correction", new String[]{"Correction", "Correction", "Corrección"});
         TEXT.put("points", new String[]{"points", "points", "puntos"});
         TEXT.put("theft", new String[]{"Vol de points", "Points stolen", "Robo de puntos"});
+        TEXT.put("opening_ignored", new String[]{"Ouverture non atteinte (score ignoré)", "Opening threshold missed (score ignored)", "No alcanzó el mínimo de apertura (puntuación ignorada)"});
         TEXT.put("legacy_theft", new String[]{"Ancien score annulé", "Previous score voided", "Puntuación anterior anulada"});
         TEXT.put("three_failures", new String[]{"Perte après 3 échecs", "Loss after 3 failures", "Pérdida tras 3 fallos"});
         TEXT.put("rules_intro", new String[]{"Une variante courante : convenez des règles avant de commencer, car elles varient selon les tables.", "A common variant: agree on the rules before playing, as they vary between tables.", "Una variante habitual: acordad las reglas antes de jugar, ya que varían según la mesa."});
         TEXT.put("rules_body", new String[]{
-                "But : atteindre 10 000 points. Les points des combinaisons sont saisis manuellement.\n\n• Chaque 1 vaut 100 points ; chaque 5 vaut 50 points.\n• Brelan : trois 1 valent 1 000 ; trois dés identiques de 2 à 6 valent face x 100.\n• Quatre, cinq ou six dés identiques valent 2x, 3x ou 4x la valeur du brelan.\n• Suite de 1 à 6 : 1 500 points. Trois paires : 1 500 points.\n• Échec : aucun point marqué arrête le tour et rapporte 0. À trois échecs consécutifs, le dernier gain du joueur est retiré.\n• Égalité : si un joueur rejoint exactement le total d'un ou plusieurs adversaires, chacun de ces adversaires perd les points de son dernier tour réussi.\n\nLes variantes (seuil d'ouverture, combinaisons, fin de partie) changent selon les joueurs. Cette application suit les scores, elle ne lance pas les dés.",
-                "Goal: reach 10,000 points. Enter the points for each scoring combination manually.\n\n• Each 1 is worth 100 points; each 5 is worth 50.\n• Three of a kind: three 1s are worth 1,000; three matching dice from 2 to 6 are worth face value x 100.\n• Four, five, or six matching dice are worth 2x, 3x, or 4x the three-of-a-kind score.\n• Straight from 1 to 6: 1,500 points. Three pairs: 1,500 points.\n• Farkle: scoring no combination ends the turn and scores 0. After three consecutive failures, the player's latest gain is removed.\n• Tie: if a player reaches exactly the same total as one or more opponents, each tied opponent loses the points from their latest successful turn.\n\nVariations (opening threshold, combinations, game end) differ between groups. This app tracks scores; it does not roll dice.",
-                "Objetivo: llegar a 10 000 puntos. Anota manualmente los puntos de cada combinación.\n\n• Cada 1 vale 100 puntos; cada 5 vale 50.\n• Trío: tres 1 valen 1 000; tres dados iguales del 2 al 6 valen cara x 100.\n• Cuatro, cinco o seis dados iguales valen 2x, 3x o 4x el valor del trío.\n• Escalera del 1 al 6: 1 500 puntos. Tres parejas: 1 500 puntos.\n• Fallo: no conseguir una combinación termina el turno y suma 0. Tras tres fallos consecutivos, se quitan los últimos puntos ganados por el jugador.\n• Empate: si un jugador alcanza exactamente el mismo total que uno o varios rivales, cada rival empatado pierde los puntos de su último turno exitoso.\n\nLas variantes (umbral de apertura, combinaciones y final) dependen del grupo. Esta aplicación registra puntos, no lanza dados."
+                "But : atteindre 10 000 points. Les points des combinaisons sont saisis manuellement.\n\n• Pour entrer dans la partie, il faut marquer au moins 600 points en un seul tour ; en dessous, les points sont ignorés sans compter comme échec.\n• Chaque 1 vaut 100 points ; chaque 5 vaut 50 points.\n• Brelan : trois 1 valent 1 000 ; trois dés identiques de 2 à 6 valent face x 100.\n• Quatre, cinq ou six dés identiques valent 2x, 3x ou 4x la valeur du brelan.\n• Suite de 1 à 6 : 1 500 points. Trois paires : 1 500 points.\n• Échec : aucun point marqué arrête le tour et rapporte 0. Les échecs sont attachés au palier courant ; au troisième, le dernier gain est retiré et les croix du palier précédent sont conservées.\n• Égalité : si un joueur rejoint exactement le total d'un ou plusieurs adversaires, chacun perd les points de son dernier tour réussi. Les nouvelles égalités déclenchent d'autres pertes en cascade ; un même gain n'est retiré qu'une fois.\n\nLes variantes (combinaisons, fin de partie) changent selon les joueurs. Cette application suit les scores, elle ne lance pas les dés.",
+                "Goal: reach 10,000 points. Enter the points for each scoring combination manually.\n\n• To enter the game, a player must score at least 600 points in one turn; lower scores are ignored and do not count as failures.\n• Each 1 is worth 100 points; each 5 is worth 50.\n• Three of a kind: three 1s are worth 1,000; three matching dice from 2 to 6 are worth face value x 100.\n• Four, five, or six matching dice are worth 2x, 3x, or 4x the three-of-a-kind score.\n• Straight from 1 to 6: 1,500 points. Three pairs: 1,500 points.\n• Farkle: scoring no combination ends the turn and scores 0. Failures belong to the current tier; on the third, its latest gain is removed and the previous tier's crosses are kept.\n• Tie: if a player reaches exactly the same total as one or more opponents, each loses the points from their latest successful turn. New ties trigger further losses in a cascade; each gain can be removed only once.\n\nVariations (combinations, game end) differ between groups. This app tracks scores; it does not roll dice.",
+                "Objetivo: llegar a 10 000 puntos. Anota manualmente los puntos de cada combinación.\n\n• Para entrar en la partida, hay que anotar al menos 600 puntos en un solo turno; las puntuaciones menores se ignoran y no cuentan como fallos.\n• Cada 1 vale 100 puntos; cada 5 vale 50.\n• Trío: tres 1 valen 1 000; tres dados iguales del 2 al 6 valen cara x 100.\n• Cuatro, cinco o seis dados iguales valen 2x, 3x o 4x el valor del trío.\n• Escalera del 1 al 6: 1 500 puntos. Tres parejas: 1 500 puntos.\n• Fallo: no conseguir una combinación termina el turno y suma 0. Los fallos pertenecen al nivel actual; al tercero se quitan sus últimos puntos ganados y se conservan las cruces del nivel anterior.\n• Empate: si un jugador alcanza exactamente el mismo total que uno o varios rivales, cada uno pierde los puntos de su último turno exitoso. Los nuevos empates generan pérdidas en cascada; cada ganancia solo puede quitarse una vez.\n\nLas variantes (combinaciones y final) dependen del grupo. Esta aplicación registra puntos, no lanza dados."
         });
         TEXT.put("language_names", new String[]{"Français", "English", "Español"});
         TEXT.put("player_default", new String[]{"Joueur ", "Player ", "Jugador "});
@@ -90,9 +97,14 @@ public final class MainActivity extends Activity {
                 "Empate: cada rival con ese total pierde los puntos de su último turno exitoso."
         });
         TEXT.put("three_failures_message", new String[]{
-                "Trois échecs consécutifs : le gain de votre dernier tour réussi est retiré.",
-                "Three consecutive failures: your latest successful turn's points are removed.",
-                "Tres fallos consecutivos: se quitan los puntos de tu último turno exitoso."
+                "Trois échecs sur ce palier : son gain est retiré.",
+                "Three failures on this tier: its gain is removed.",
+                "Tres fallos en este nivel: se quitan sus puntos."
+        });
+        TEXT.put("cascade_message", new String[]{
+                "Les pertes ont été appliquées en cascade.",
+                "The score losses were applied in a cascade.",
+                "Las pérdidas se aplicaron en cascada."
         });
         TEXT.put("no_score_to_remove", new String[]{
                 "Trois échecs consécutifs, mais aucun gain précédent à retirer.",
@@ -331,18 +343,48 @@ public final class MainActivity extends Activity {
         }
         LinearLayout layout = page();
         heading(layout, t("scoreboard"), t("target"));
-        for (GameDatabase.Player player : players) {
+        int currentPosition = database.currentPlayerPosition(gameId, players.size());
+        selectedPlayerPosition = currentPosition;
+        for (int i = 0; i < players.size(); i++) {
+            GameDatabase.Player player = players.get(i);
             LinearLayout card = new LinearLayout(this);
             card.setGravity(Gravity.CENTER_VERTICAL);
             card.setPadding(dp(16), dp(12), dp(16), dp(12));
             card.setBackground(round(WHITE, 14, LINE));
             TextView name = text(player.name, 17, INK, true);
             TextView score = text(String.format(Locale.getDefault(), "%,d", player.score), 22, GREEN, true);
+            String crossMarks = crosses(Math.min(2,
+                    database.currentFailureMarks(gameId, player.id)));
+            TextView crosses = text(crossMarks, 16, 0xFFB54747, true);
             card.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
             card.addView(score);
+            if (!crossMarks.isEmpty()) card.addView(crosses);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
             params.setMargins(0, dp(4), 0, dp(4));
             layout.addView(card, params);
+            if (i == currentPosition) {
+                TextView currentTurn = text(t("current_turn") + player.name, 16, GREEN, true);
+                currentTurn.setPadding(dp(4), dp(8), 0, dp(4));
+                layout.addView(currentTurn);
+                section(layout, t("paliers"));
+                List<GameDatabase.Milestone> milestones =
+                        database.milestones(gameId, player.id);
+                if (milestones.isEmpty()) {
+                    layout.addView(text(t("no_paliers"), 14, MUTED, false));
+                } else {
+                    for (int m = milestones.size() - 1; m >= 0; m--) {
+                        GameDatabase.Milestone milestone = milestones.get(m);
+                        int number = milestones.size() - m;
+                        String detail = t("palier") + " " + number + "  +" +
+                                milestone.points + " " + t("points") +
+                                crosses(milestone.failureMarks) +
+                                (milestone.removed ? " · " + t("removed") : "");
+                        TextView tier = text(detail, 14, milestone.removed ? MUTED : INK, false);
+                        tier.setPadding(dp(12), dp(4), 0, dp(4));
+                        layout.addView(tier);
+                    }
+                }
+            }
         }
 
         if (database.isFinished(gameId)) {
@@ -355,7 +397,7 @@ public final class MainActivity extends Activity {
             List<String> playerNames = new ArrayList<>();
             for (GameDatabase.Player player : players) playerNames.add(player.name);
             playerSpinner.setAdapter(adapter(playerNames));
-            playerSpinner.setSelection(Math.min(selectedPlayerPosition, players.size() - 1));
+            playerSpinner.setSelection(currentPosition);
             playerSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                     selectedPlayerPosition = position;
@@ -377,10 +419,20 @@ public final class MainActivity extends Activity {
                         return;
                     }
                     GameDatabase.Player selected = players.get(playerSpinner.getSelectedItemPosition());
+                    int playerPosition = playerSpinner.getSelectedItemPosition();
                     GameDatabase.EntryResult result = database.addEntry(gameId, selected.id, amount,
                             amount < 0 ? "correction" : "score");
                     points.setText("");
-                    toast(result.tiedPlayers > 0 ? t("tie_message") : t("entry_saved"));
+                    if (result.openingRejected) {
+                        toast(t("need_600"));
+                    } else if (result.tiedPlayers > 0) {
+                        toast(t("tie_message") + " " + t("cascade_message"));
+                    } else {
+                        toast(t("entry_saved"));
+                    }
+                    if (amount > 0) {
+                        database.advanceTurn(gameId, playerPosition, players.size());
+                    }
                     checkWinner(gameId);
                     showGame(gameId);
                 } catch (NumberFormatException exception) {
@@ -388,9 +440,13 @@ public final class MainActivity extends Activity {
                 }
             });
             button(layout, t("failure"), false, () -> {
-                GameDatabase.Player selected = players.get(playerSpinner.getSelectedItemPosition());
+                int playerPosition = playerSpinner.getSelectedItemPosition();
+                GameDatabase.Player selected = players.get(playerPosition);
                 GameDatabase.EntryResult result = database.addEntry(gameId, selected.id, 0, "failure");
-                if (!result.thirdFailure) {
+                database.advanceTurn(gameId, playerPosition, players.size());
+                if (result.tiedPlayers > 0) {
+                    toast(t("cascade_message"));
+                } else if (!result.failureThresholdReached) {
                     toast(t("entry_saved"));
                 } else {
                     toast(result.failurePenalty ? t("three_failures_message") :
@@ -437,7 +493,14 @@ public final class MainActivity extends Activity {
         if (entry.kind.equals("theft")) return t("theft");
         if (entry.kind.equals("three_failures")) return t("three_failures");
         if (entry.kind.equals("legacy_theft")) return t("legacy_theft");
+        if (entry.kind.equals("opening_ignored")) return t("opening_ignored");
         return t("scoreboard");
+    }
+
+    private String crosses(int count) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < count; i++) result.append("  X");
+        return result.toString();
     }
 
     private void checkWinner(long gameId) {

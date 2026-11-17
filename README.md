@@ -8,9 +8,11 @@ base SQLite privée de l'application sur le téléphone.
 
 - Reprendre la partie en cours ou commencer une partie de 2 à 8 joueurs.
 - Consulter les parties récentes et leurs vainqueurs.
+- Exiger 600 points en un tour pour qu'un joueur entre dans la partie.
 - Enregistrer des points, une correction positive ou négative, ou un échec.
-- Retirer le dernier gain après trois échecs consécutifs.
-- En cas d'égalité, retirer le dernier gain de chaque adversaire ayant ce total.
+- Passer automatiquement au joueur suivant après un score ou un échec.
+- Suivre les échecs par palier ; au troisième, retirer le gain de ce palier.
+- En cas d'égalité, retirer en cascade le dernier gain des adversaires concernés.
 - Consulter l'évolution des scores et annuler une saisie (avec confirmation).
 - Lire les règles en français, anglais ou espagnol.
 - Consommation réduite : aucune publicité, connexion réseau, animation continue ni tâche en arrière-plan.

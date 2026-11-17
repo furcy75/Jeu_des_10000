@@ -8,6 +8,9 @@ nombreuses, convenez des règles avant de commencer.
 
 **But :** atteindre 10 000 points.
 
+- Pour entrer dans la partie, chaque joueur doit marquer au moins 600 points
+  en un seul tour. Un score inférieur est ignoré et ne compte pas comme un
+  échec ; une fois entré, le joueur n'a plus ce seuil à atteindre.
 - Chaque 1 vaut 100 points ; chaque 5 vaut 50 points.
 - Brelan : trois 1 valent 1 000 points ; trois dés identiques de 2 à 6 valent
   la valeur du dé multipliée par 100.
@@ -16,10 +19,16 @@ nombreuses, convenez des règles avant de commencer.
 - Une suite de 1 à 6 vaut 1 500 points ; trois paires valent 1 500 points.
 - **Échec :** si un joueur ne marque aucune combinaison, son tour s'arrête et
   il marque 0 point.
-- Après **trois échecs consécutifs**, le dernier gain du joueur est retiré.
+- Les croix d'échec sont rattachées au palier courant. Au troisième échec de
+  ce palier, son gain est retiré et le joueur revient au palier précédent,
+  avec les croix déjà enregistrées sur celui-ci. Un nouveau palier commence
+  sans croix.
 - **Égalité (vol de points) :** si un joueur rejoint exactement le total d'un
   ou plusieurs adversaires, chacun des adversaires à ce total perd les points
-  de son dernier tour réussi et revient à son total précédent.
+  de son dernier tour réussi. On vérifie ensuite les nouvelles égalités et on
+  répète les pertes en cascade ; un même gain ne peut être retiré qu'une fois.
+- Après un score validé ou un échec, le tour passe au joueur suivant. Une
+  correction manuelle ne change pas le joueur courant.
 
 Les seuils d'ouverture, les combinaisons et les conditions de fin peuvent
 varier selon les joueurs.
@@ -28,6 +37,9 @@ varier selon les joueurs.
 
 **Goal:** reach 10,000 points.
 
+- To enter the game, each player must score at least 600 points in one turn.
+  A lower score is ignored and does not count as a failure; the threshold no
+  longer applies once the player has entered.
 - Each 1 is worth 100 points; each 5 is worth 50 points.
 - Three of a kind: three 1s are worth 1,000 points; three matching dice from
   2 to 6 are worth the die value multiplied by 100.
@@ -36,10 +48,15 @@ varier selon les joueurs.
 - A straight from 1 to 6 is worth 1,500 points; three pairs are worth 1,500.
 - **Farkle:** if a player scores no combination, their turn ends and they score
   0 points.
-- After **three consecutive failures**, the player's latest gain is removed.
+- Failure crosses belong to the current tier. On its third failure, that
+  tier's gain is removed and the player returns to the previous tier with its
+  existing crosses. A new tier starts without crosses.
 - **Tie (points stolen):** if a player reaches exactly the same total as one
   or more opponents, each tied opponent loses the points from their latest
-  successful turn and returns to their previous total.
+  successful turn. New ties are then checked and losses repeat in a cascade;
+  each gain can be removed only once.
+- After a score or failure is recorded, the turn passes to the next player.
+  A manual correction does not change the current player.
 
 Opening thresholds, scoring combinations, and end-game conditions may vary by
 group.
@@ -48,6 +65,9 @@ group.
 
 **Objetivo:** llegar a 10 000 puntos.
 
+- Para entrar en la partida, cada jugador debe anotar al menos 600 puntos en
+  un solo turno. Una puntuación menor se ignora y no cuenta como fallo; el
+  umbral deja de aplicarse una vez que el jugador ha entrado.
 - Cada 1 vale 100 puntos; cada 5 vale 50 puntos.
 - Trío: tres 1 valen 1 000 puntos; tres dados iguales del 2 al 6 valen el
   valor del dado multiplicado por 100.
@@ -56,11 +76,16 @@ group.
 - Una escalera del 1 al 6 vale 1 500 puntos; tres parejas valen 1 500 puntos.
 - **Fallo:** si un jugador no consigue ninguna combinación, termina su turno y
   anota 0 puntos.
-- Tras **tres fallos consecutivos**, se quitan los últimos puntos ganados por
-  el jugador.
+- Las cruces de fallo pertenecen al nivel actual. Al tercer fallo de ese
+  nivel, se quitan sus puntos y el jugador vuelve al nivel anterior,
+  conservando las cruces que ya tenía ese nivel. Un nuevo nivel empieza sin
+  cruces.
 - **Empate (robo de puntos):** si un jugador alcanza exactamente el mismo
   total que uno o varios rivales, cada rival empatado pierde los puntos de su
-  último turno exitoso y vuelve a su total anterior.
+  último turno exitoso. Después se comprueban los nuevos empates y las
+  pérdidas continúan en cascada; cada ganancia solo puede quitarse una vez.
+- Después de anotar una puntuación o un fallo, el turno pasa al siguiente
+  jugador. Una corrección manual no cambia el jugador actual.
 
 El umbral para abrir, las combinaciones y las condiciones de final pueden
 variar según el grupo.
