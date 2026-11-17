@@ -6,7 +6,8 @@ nombreuses, convenez des règles avant de commencer.
 
 ## Français
 
-**But :** atteindre 10 000 points.
+**But :** atteindre exactement 10 000 points pour gagner. Dépasser 10 000
+annule les points du tour et compte comme un échec.
 
 - Pour entrer dans la partie, chaque joueur doit marquer au moins 600 points
   en un seul tour. Un score inférieur est ignoré et ne compte pas comme un
@@ -36,7 +37,8 @@ varier selon les joueurs.
 
 ## English
 
-**Goal:** reach 10,000 points.
+**Goal:** reach exactly 10,000 points to win. Going over 10,000 cancels the
+turn's points and counts as a failure.
 
 - To enter the game, each player must score at least 600 points in one turn.
   A lower score is ignored and does not count as a failure; the threshold no
@@ -65,7 +67,8 @@ group.
 
 ## Español
 
-**Objetivo:** llegar a 10 000 puntos.
+**Objetivo:** llegar exactamente a 10 000 puntos para ganar. Superar los
+10 000 anula los puntos del turno y cuenta como fallo.
 
 - Para entrar en la partida, cada jugador debe anotar al menos 600 puntos en
   un solo turno. Una puntuación menor se ignora y no cuenta como fallo. Si su

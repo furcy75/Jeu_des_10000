@@ -12,7 +12,7 @@ import java.util.List;
 
 final class GameDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "jeu_10000.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
     private static final int TARGET_SCORE = 10000;
     private static final int OPENING_SCORE = 600;
 
@@ -69,6 +69,16 @@ final class GameDatabase extends SQLiteOpenHelper {
                     "(SELECT SUM(e.points) FROM score_entries e " +
                     "WHERE e.player_id=players.id " +
                     "AND e.kind NOT IN ('legacy_theft','opening_ignored')), 0)<=0");
+        }
+        if (oldVersion < 5) {
+            String winnerSubquery = "SELECT p.id FROM players p LEFT JOIN score_entries e " +
+                    "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
+                    "WHERE p.game_id=games.id GROUP BY p.id " +
+                    "HAVING COALESCE(SUM(e.points),0)=" + TARGET_SCORE +
+                    " ORDER BY p.position LIMIT 1";
+            db.execSQL("UPDATE games SET winner_id=(" + winnerSubquery +
+                    "), status=CASE WHEN (" + winnerSubquery +
+                    ") IS NULL THEN 'active' ELSE 'finished' END");
         }
     }
 
@@ -188,15 +198,22 @@ final class GameDatabase extends SQLiteOpenHelper {
         boolean openingRejected = false;
         boolean failureThresholdReached = false;
         boolean failurePenalty = false;
+        boolean exactGoalFailure = false;
         boolean resolveTies = false;
         int tiedPlayers = 0;
         try {
             String storedKind = kind;
-            if (kind.equals("score") && points > 0 && !isPlayerOpened(db, gameId, playerId)) {
-                if (points < OPENING_SCORE) {
+            int storedPoints = points;
+            if (kind.equals("score") && points > 0) {
+                boolean opened = isPlayerOpened(db, gameId, playerId);
+                if (!opened && points < OPENING_SCORE) {
                     storedKind = "opening_ignored";
                     openingRejected = true;
-                } else {
+                } else if ((long) playerScore(db, gameId, playerId) + points > TARGET_SCORE) {
+                    storedKind = "failure";
+                    storedPoints = 0;
+                    exactGoalFailure = true;
+                } else if (!opened) {
                     ContentValues open = new ContentValues();
                     open.put("opened", 1);
                     db.update("players", open, "id=? AND game_id=?",
@@ -207,14 +224,14 @@ final class GameDatabase extends SQLiteOpenHelper {
             ContentValues entry = new ContentValues();
             entry.put("game_id", gameId);
             entry.put("player_id", playerId);
-            entry.put("points", points);
+            entry.put("points", storedPoints);
             entry.put("kind", storedKind);
             entry.put("created_at", now);
             long entryId = db.insertOrThrow("score_entries", null, entry);
 
             if (storedKind.equals("score")) {
                 resolveTies = true;
-            } else if (kind.equals("failure")) {
+            } else if (storedKind.equals("failure")) {
                 FailureResult result = recordFailure(db, gameId, playerId, now);
                 failureThresholdReached = result.thresholdReached;
                 failurePenalty = result.penaltyApplied;
@@ -240,7 +257,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             db.endTransaction();
         }
         return new EntryResult(openingRejected, tiedPlayers,
-                failureThresholdReached, failurePenalty);
+                failureThresholdReached, failurePenalty, exactGoalFailure);
     }
 
     private boolean isPlayerOpened(SQLiteDatabase db, long gameId, long playerId) {
@@ -294,7 +311,7 @@ final class GameDatabase extends SQLiteOpenHelper {
         // A score tier can be stolen only once, so each queued step consumes a finite tier.
         while (!changedPlayers.isEmpty()) {
             long playerId = changedPlayers.removeFirst();
-            int score = playerScore(db, playerId);
+            int score = playerScore(db, gameId, playerId);
             for (long tiedPlayerId : playersAtScore(db, gameId, playerId, score)) {
                 long palierId = latestActiveScoreId(db, gameId, tiedPlayerId);
                 if (palierId >= 0 && addPenaltyForScore(
@@ -307,10 +324,11 @@ final class GameDatabase extends SQLiteOpenHelper {
         return penalties;
     }
 
-    private int playerScore(SQLiteDatabase db, long playerId) {
+    private int playerScore(SQLiteDatabase db, long gameId, long playerId) {
         String sql = "SELECT COALESCE(SUM(points), 0) FROM score_entries " +
-                "WHERE player_id=? AND kind NOT IN ('legacy_theft','opening_ignored')";
-        try (Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(playerId)})) {
+                "WHERE game_id=? AND player_id=? AND kind NOT IN ('legacy_theft','opening_ignored')";
+        try (Cursor cursor = db.rawQuery(sql,
+                new String[]{Long.toString(gameId), Long.toString(playerId)})) {
             return cursor.moveToFirst() ? cursor.getInt(0) : 0;
         }
     }
@@ -325,10 +343,10 @@ final class GameDatabase extends SQLiteOpenHelper {
 
     private List<Long> playersAtScore(SQLiteDatabase db, long gameId, long playerId, int score) {
         List<Long> result = new ArrayList<>();
-        String sql = "SELECT p.id FROM players p LEFT JOIN score_entries e " +
-                "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
-                "WHERE p.game_id=? AND p.id!=? GROUP BY p.id " +
-                "HAVING COALESCE(SUM(e.points),0)=? ORDER BY p.position";
+        String sql = "SELECT p.id FROM players p WHERE p.game_id=? AND p.id!=? " +
+                "AND (SELECT COALESCE(SUM(e.points),0) FROM score_entries e " +
+                "WHERE e.game_id=p.game_id AND e.player_id=p.id " +
+                "AND e.kind NOT IN ('legacy_theft','opening_ignored'))=? ORDER BY p.position";
         try (Cursor cursor = db.rawQuery(sql, new String[]{
                 Long.toString(gameId), Long.toString(playerId), Integer.toString(score)})) {
             while (cursor.moveToNext()) result.add(cursor.getLong(0));
@@ -412,7 +430,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             String winnerSql = "SELECT p.id FROM players p LEFT JOIN score_entries e " +
                     "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
                     "WHERE p.game_id=? GROUP BY p.id " +
-                    "HAVING COALESCE(SUM(e.points), 0)>=? ORDER BY p.position LIMIT 1";
+                    "HAVING COALESCE(SUM(e.points), 0)=? ORDER BY p.position LIMIT 1";
             try (Cursor cursor = db.rawQuery(winnerSql,
                     new String[]{Long.toString(gameId), Integer.toString(TARGET_SCORE)})) {
                 if (cursor.moveToFirst()) winnerId = cursor.getLong(0);
@@ -519,13 +537,16 @@ final class GameDatabase extends SQLiteOpenHelper {
         final int tiedPlayers;
         final boolean failureThresholdReached;
         final boolean failurePenalty;
+        final boolean exactGoalFailure;
 
         EntryResult(boolean openingRejected, int tiedPlayers,
-                    boolean failureThresholdReached, boolean failurePenalty) {
+                    boolean failureThresholdReached, boolean failurePenalty,
+                    boolean exactGoalFailure) {
             this.openingRejected = openingRejected;
             this.tiedPlayers = tiedPlayers;
             this.failureThresholdReached = failureThresholdReached;
             this.failurePenalty = failurePenalty;
+            this.exactGoalFailure = exactGoalFailure;
         }
     }
 
