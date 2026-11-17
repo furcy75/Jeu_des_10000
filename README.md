@@ -11,7 +11,7 @@ suivi du jeu.
 |---|---|
 | Plateforme | Android |
 | Joueurs | De 2 à 8 |
-| Version actuelle | 1.8 |
+| Version actuelle | 1.9 |
 | Langues | Français, anglais et espagnol |
 | Version minimale d’Android | Android 6.0 (API 23) |
 
@@ -23,9 +23,21 @@ suivi du jeu.
 - Appliquer la règle du vol de points en cas d’égalité, y compris les cascades
   entre plusieurs joueurs, et afficher un récapitulatif des points retirés.
 - Consulter le détail des scores et l’historique des parties.
+- Abandonner une partie en cours ou supprimer une partie terminée depuis
+  l’historique, après confirmation.
 - Terminer une partie à exactement 10 000 points ; afficher le vainqueur et
   empêcher la reprise ou la modification d’une partie terminée.
 - Changer de langue depuis le bouton drapeau de l’écran d’accueil.
+
+## Aperçu de l’application
+
+Illustrations des écrans principaux de l’application.
+
+<p align="center">
+  <img src="./screenshots/accueil.svg" alt="Illustration de l’écran d’accueil" width="240">
+  <img src="./screenshots/partie.svg" alt="Illustration du tableau des scores" width="240">
+  <img src="./screenshots/abandon.svg" alt="Illustration de la confirmation d’abandon" width="240">
+</p>
 
 Les variantes du jeu des 10 000 sont nombreuses. Les règles suivies par
 l’application sont décrites dans [REGLES.md](./REGLES.md).
@@ -34,14 +46,14 @@ l’application sont décrites dans [REGLES.md](./REGLES.md).
 
 La version courante est disponible ici :
 
-**[Télécharger l’APK de test 1.8](./apk/jeu-des-10000-v1.8-debug.apk)**
+**[Télécharger l’APK de test 1.9](./apk/jeu-des-10000-v1.9-debug.apk)**
 
 Il s’agit d’un APK **debug**, destiné aux tests et non signé pour une
 distribution de production. Pour l’installer avec Android Debug Bridge (ADB),
 connectez un appareil Android avec le débogage USB activé, puis lancez :
 
 ```sh
-adb install -r apk/jeu-des-10000-v1.8-debug.apk
+adb install -r apk/jeu-des-10000-v1.9-debug.apk
 ```
 
 Les anciennes versions de test sont conservées dans [`apk/`](./apk/).

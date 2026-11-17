@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+  <rect width="390" height="844" rx="28" fill="#F5F7F6"/>
+  <path d="M28 0h334a28 28 0 0 1 28 28v788a28 28 0 0 1-28 28H28A28 28 0 0 1 0 816V28A28 28 0 0 1 28 0Z" fill="#F5F7F6"/>
+  <text x="24" y="27" fill="#18312C" font-family="Arial,sans-serif" font-size="13" font-weight="700">9:41</text>
+  <g fill="none" stroke="#18312C" stroke-width="2">
+    <path d="M315 19h12m-9-4v8m5-8v8"/>
+    <path d="M338 22a8 8 0 0 1 13 0m-10-3a4 4 0 0 1 7 0"/>
+  </g>
+  <rect x="358" y="13" width="18" height="11" rx="3" fill="none" stroke="#18312C" stroke-width="1.5"/>
+  <rect x="360" y="15" width="12" height="7" rx="1.5" fill="#167D68"/>
+  <rect x="377" y="16" width="2" height="5" rx="1" fill="#18312C"/>
+  <rect x="322" y="48" width="44" height="40" rx="12" fill="#FFFFFF" stroke="#E2E9E6"/>
+  <rect x="336" y="61" width="5" height="14" fill="#244B9B"/>
+  <rect x="341" y="61" width="5" height="14" fill="#FFFFFF"/>
+  <rect x="346" y="61" width="5" height="14" fill="#E44646"/>
+  <text x="24" y="126" fill="#18312C" font-family="Arial,sans-serif" font-size="29" font-weight="700">Jeu des 10 000</text>
+  <text x="24" y="157" fill="#64756F" font-family="Arial,sans-serif" font-size="14">Une partie, tous les scores,</text>
+  <text x="24" y="178" fill="#64756F" font-family="Arial,sans-serif" font-size="14">sans rien perdre.</text>
+  <text x="24" y="237" fill="#18312C" font-family="Arial,sans-serif" font-size="18" font-weight="700">Reprendre la partie</text>
+  <rect x="24" y="253" width="342" height="54" rx="14" fill="#167D68"/>
+  <text x="195" y="286" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Reprendre la partie</text>
+  <rect x="24" y="325" width="342" height="54" rx="14" fill="#FFFFFF" stroke="#E2E9E6"/>
+  <text x="195" y="358" fill="#167D68" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Nouvelle partie</text>
+  <rect x="24" y="397" width="342" height="54" rx="14" fill="#FFFFFF" stroke="#E2E9E6"/>
+  <text x="195" y="430" fill="#167D68" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Dernières parties</text>
+  <rect x="24" y="469" width="342" height="54" rx="14" fill="#FFFFFF" stroke="#E2E9E6"/>
+  <text x="195" y="502" fill="#167D68" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Règles du jeu</text>
+  <rect x="134" y="824" width="122" height="5" rx="2.5" fill="#18312C" opacity=".2"/>
+</svg>

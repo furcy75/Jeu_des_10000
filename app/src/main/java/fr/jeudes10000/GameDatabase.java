@@ -525,6 +525,11 @@ final class GameDatabase extends SQLiteOpenHelper {
         }
     }
 
+    boolean deleteGame(long gameId) {
+        return getWritableDatabase().delete("games", "id=?",
+                new String[]{Long.toString(gameId)}) > 0;
+    }
+
     private void adjustFailureMarks(SQLiteDatabase db, String table, long id, int delta) {
         int marks;
         try (Cursor cursor = db.query(table, new String[]{"failure_marks"}, "id=?",

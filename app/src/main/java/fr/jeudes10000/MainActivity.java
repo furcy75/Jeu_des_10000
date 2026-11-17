@@ -80,6 +80,15 @@ public final class MainActivity extends Activity {
         TEXT.put("ongoing", new String[]{"En cours", "In progress", "En curso"});
         TEXT.put("no_history", new String[]{"Aucune partie enregistrée.", "No games recorded.", "No hay partidas guardadas."});
         TEXT.put("game", new String[]{"Partie", "Game", "Partida"});
+        TEXT.put("delete_game", new String[]{"Supprimer la partie", "Delete game", "Eliminar partida"});
+        TEXT.put("abandon_game", new String[]{"Abandonner sans sauvegarder", "Discard without saving", "Abandonar sin guardar"});
+        TEXT.put("confirm_delete_game", new String[]{
+                "Cette partie et tous ses scores seront définitivement supprimés. Continuer ?",
+                "This game and all its scores will be permanently deleted. Continue?",
+                "Esta partida y todas sus puntuaciones se eliminarán definitivamente. ¿Continuar?"
+        });
+        TEXT.put("cancel_action", new String[]{"Annuler", "Cancel", "Cancelar"});
+        TEXT.put("game_not_found", new String[]{"Cette partie n’existe plus.", "This game no longer exists.", "Esta partida ya no existe."});
         TEXT.put("failure_event", new String[]{"Échec", "Farkle", "Fallo"});
         TEXT.put("correction", new String[]{"Correction", "Correction", "Corrección"});
         TEXT.put("points", new String[]{"points", "points", "puntos"});
@@ -663,9 +672,28 @@ public final class MainActivity extends Activity {
                     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale())
                             .format(new Date(game.createdAt));
             button(layout, title + "\n" + status, false, () -> showGame(game.id));
+            button(layout, game.status.equals("finished") ? t("delete_game") : t("abandon_game"),
+                    false, () -> confirmDeleteGame(game.id));
         }
         button(layout, t("back"), false, this::showHome);
         setScreen(layout);
+    }
+
+    private void confirmDeleteGame(long gameId) {
+        boolean finished = database.isFinished(gameId);
+        new AlertDialog.Builder(this)
+                .setTitle(finished ? t("delete_game") : t("abandon_game"))
+                .setMessage(t("confirm_delete_game"))
+                .setNegativeButton(t("cancel_action"), null)
+                .setPositiveButton(t("confirm"), (dialog, which) -> {
+                    if (database.deleteGame(gameId)) {
+                        if (currentGameId == gameId) currentGameId = -1;
+                        showHistory();
+                    } else {
+                        toast(t("game_not_found"));
+                    }
+                })
+                .show();
     }
 
     private void showRules() {
