@@ -8,7 +8,6 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -20,7 +19,6 @@ import android.widget.Toast;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -263,22 +261,8 @@ public final class MainActivity extends Activity {
     private void showHome() {
         currentGameId = -1;
         LinearLayout layout = page();
+        addLanguageControl(layout);
         heading(layout, t("home"), t("tagline"));
-        section(layout, t("language"));
-        Spinner languageSpinner = new Spinner(this);
-        languageSpinner.setAdapter(adapter(Arrays.asList(TEXT.get("language_names"))));
-        languageSpinner.setSelection(language);
-        layout.addView(languageSpinner);
-        languageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            boolean initialized;
-            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!initialized) { initialized = true; return; }
-                language = position;
-                getPreferences(MODE_PRIVATE).edit().putInt("language", language).apply();
-                showHome();
-            }
-            @Override public void onNothingSelected(AdapterView<?> parent) { }
-        });
 
         List<GameDatabase.Game> active = database.games("active", 1);
         section(layout, t("resume"));
@@ -294,6 +278,36 @@ public final class MainActivity extends Activity {
         button(layout, t("recent"), false, this::showHistory);
         button(layout, t("rules"), false, this::showRules);
         setScreen(layout);
+    }
+
+    private void addLanguageControl(LinearLayout layout) {
+        String[] flags = {"🇫🇷", "🇬🇧", "🇪🇸"};
+        String[] names = TEXT.get("language_names");
+        String[] options = new String[names.length];
+        for (int i = 0; i < names.length; i++) {
+            options[i] = flags[i] + "  " + names[i];
+        }
+
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.END);
+        TextView control = text(flags[language], 21, INK, false);
+        control.setGravity(Gravity.CENTER);
+        control.setMinWidth(dp(44));
+        control.setMinHeight(dp(40));
+        control.setPadding(dp(6), 0, dp(6), 0);
+        control.setBackground(round(WHITE, 12, LINE));
+        control.setContentDescription(t("language"));
+        row.addView(control);
+        row.setPadding(0, 0, 0, dp(4));
+        layout.addView(row);
+        control.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle(t("language"))
+                .setItems(options, (dialog, which) -> {
+                    language = which;
+                    getPreferences(MODE_PRIVATE).edit().putInt("language", language).apply();
+                    showHome();
+                })
+                .show());
     }
 
     private void showPlayerDetails(long gameId, GameDatabase.Player player) {
@@ -388,9 +402,11 @@ public final class MainActivity extends Activity {
 
     private void showGame(long gameId) {
         currentGameId = gameId;
+        boolean wasFinished = database.isFinished(gameId);
         if (database.resolveExistingTies(gameId) > 0) {
             toast(t("tie_message") + " " + t("cascade_message"));
         }
+        if (!wasFinished) checkWinner(gameId);
         List<GameDatabase.Player> players = database.players(gameId);
         if (players.isEmpty()) {
             showHome();
