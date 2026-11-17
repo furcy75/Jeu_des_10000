@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -51,16 +52,20 @@ public final class MainActivity extends Activity {
         TEXT.put("back", new String[]{"Retour", "Back", "Volver"});
         TEXT.put("scoreboard", new String[]{"Scores", "Scoreboard", "Marcador"});
         TEXT.put("target", new String[]{"Objectif : 10 000 points", "Target: 10,000 points", "Objetivo: 10 000 puntos"});
+        TEXT.put("total", new String[]{"Total", "Total", "Total"});
         TEXT.put("record", new String[]{"Inscrire un score", "Record a score", "Anotar puntos"});
         TEXT.put("current_turn", new String[]{"À vous de jouer : ", "Current player: ", "Turno de: "});
         TEXT.put("paliers", new String[]{"Paliers récents", "Recent score tiers", "Últimos niveles"});
+        TEXT.put("details", new String[]{"Détail", "Details", "Detalle"});
+        TEXT.put("detail_title", new String[]{"Paliers de ", "Score tiers for ", "Niveles de "});
+        TEXT.put("tap_details", new String[]{"Touchez un joueur pour voir ses paliers.", "Tap a player to view their score tiers.", "Toca un jugador para ver sus niveles."});
         TEXT.put("no_paliers", new String[]{"Aucun palier. Il faut marquer 600 points en un tour pour commencer.", "No score tier yet. Score 600 points in one turn to open.", "Aún no hay nivel. Anota 600 puntos en un turno para empezar."});
         TEXT.put("palier", new String[]{"Palier", "Tier", "Nivel"});
         TEXT.put("removed", new String[]{"retiré", "removed", "retirado"});
         TEXT.put("need_600", new String[]{"Il faut au moins 600 points en un seul tour pour démarrer. Score ignoré.", "At least 600 points in one turn are required to open. Score ignored.", "Se necesitan al menos 600 puntos en un turno para empezar. Puntuación ignorada."});
         TEXT.put("select_player", new String[]{"Choisir un joueur", "Choose a player", "Elegir jugador"});
         TEXT.put("points_hint", new String[]{"Points (négatif pour une correction)", "Points (negative to correct)", "Puntos (negativos para corregir)"});
-        TEXT.put("save_score", new String[]{"Ajouter les points", "Add points", "Añadir puntos"});
+        TEXT.put("save_score", new String[]{"Valider", "Save", "Guardar"});
         TEXT.put("failure", new String[]{"Échec : tour perdu", "Farkle: turn lost", "Fallo: turno perdido"});
         TEXT.put("evolution", new String[]{"Évolution des scores", "Score history", "Evolución de puntos"});
         TEXT.put("nothing_yet", new String[]{"Aucune saisie pour le moment.", "No scores recorded yet.", "Todavía no hay puntuaciones."});
@@ -118,7 +123,6 @@ public final class MainActivity extends Activity {
     private int language;
     private EditText[] playerNameFields;
     private NumberPicker playerCountPicker;
-    private int selectedPlayerPosition;
     private long currentGameId = -1;
 
     @Override
@@ -126,6 +130,8 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(BACKGROUND);
         getWindow().setNavigationBarColor(BACKGROUND);
+        getWindow().setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         database = new GameDatabase(this);
         language = getPreferences(MODE_PRIVATE).getInt("language", 0);
         if (state != null) {
@@ -218,6 +224,15 @@ public final class MainActivity extends Activity {
         view.setOnClickListener(v -> action.run());
     }
 
+    private TextView compactButton(String label, boolean primary) {
+        TextView view = text(label, 15, primary ? WHITE : GREEN, true);
+        view.setGravity(Gravity.CENTER);
+        view.setMinHeight(dp(48));
+        view.setPadding(dp(16), dp(10), dp(16), dp(10));
+        view.setBackground(round(primary ? GREEN : WHITE, 12, primary ? GREEN : LINE));
+        return view;
+    }
+
     private android.graphics.drawable.GradientDrawable round(int color, int radius, int stroke) {
         android.graphics.drawable.GradientDrawable drawable =
                 new android.graphics.drawable.GradientDrawable();
@@ -278,6 +293,42 @@ public final class MainActivity extends Activity {
         button(layout, t("recent"), false, this::showHistory);
         button(layout, t("rules"), false, this::showRules);
         setScreen(layout);
+    }
+
+    private void showPlayerDetails(long gameId, GameDatabase.Player player) {
+        LinearLayout details = new LinearLayout(this);
+        details.setOrientation(LinearLayout.VERTICAL);
+        details.setPadding(dp(20), dp(8), dp(20), dp(12));
+        List<GameDatabase.Milestone> milestones = database.milestones(gameId, player.id);
+        if (milestones.isEmpty()) {
+            details.addView(text(t("no_paliers"), 14, MUTED, false));
+        } else {
+            for (GameDatabase.Milestone milestone : milestones) {
+                String line = t("palier") + "  +" + formatScore(milestone.points) + " " +
+                        t("points") + "  ·  " + t("total") + ": " +
+                        formatScore(milestone.totalAfter) +
+                        crosses(milestone.failureMarks) +
+                        (milestone.removed ? " · " + t("removed") : "");
+                TextView tier = text(line, 14, milestone.removed ? MUTED : INK, false);
+                tier.setPadding(0, dp(8), 0, dp(8));
+                details.addView(tier);
+                View divider = new View(this);
+                divider.setBackgroundColor(LINE);
+                details.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+            }
+        }
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(details);
+        new AlertDialog.Builder(this)
+                .setTitle(t("detail_title") + player.name)
+                .setMessage(t("total") + ": " + formatScore(player.score))
+                .setView(scroll)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private String formatScore(int score) {
+        return String.format(locale(), "%,d", score);
     }
 
     private void showSetup() {
@@ -342,75 +393,43 @@ public final class MainActivity extends Activity {
             return;
         }
         LinearLayout layout = page();
-        heading(layout, t("scoreboard"), t("target"));
+        layout.setPadding(dp(16), dp(8), dp(16), dp(20));
         int currentPosition = database.currentPlayerPosition(gameId, players.size());
-        selectedPlayerPosition = currentPosition;
-        for (int i = 0; i < players.size(); i++) {
-            GameDatabase.Player player = players.get(i);
-            LinearLayout card = new LinearLayout(this);
-            card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setPadding(dp(16), dp(12), dp(16), dp(12));
-            card.setBackground(round(WHITE, 14, LINE));
-            TextView name = text(player.name, 17, INK, true);
-            TextView score = text(String.format(Locale.getDefault(), "%,d", player.score), 22, GREEN, true);
-            String crossMarks = crosses(Math.min(2,
-                    database.currentFailureMarks(gameId, player.id)));
-            TextView crosses = text(crossMarks, 16, 0xFFB54747, true);
-            card.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-            card.addView(score);
-            if (!crossMarks.isEmpty()) card.addView(crosses);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-            params.setMargins(0, dp(4), 0, dp(4));
-            layout.addView(card, params);
-            if (i == currentPosition) {
-                TextView currentTurn = text(t("current_turn") + player.name, 16, GREEN, true);
-                currentTurn.setPadding(dp(4), dp(8), 0, dp(4));
-                layout.addView(currentTurn);
-                section(layout, t("paliers"));
-                List<GameDatabase.Milestone> milestones =
-                        database.milestones(gameId, player.id);
-                if (milestones.isEmpty()) {
-                    layout.addView(text(t("no_paliers"), 14, MUTED, false));
-                } else {
-                    for (int m = milestones.size() - 1; m >= 0; m--) {
-                        GameDatabase.Milestone milestone = milestones.get(m);
-                        int number = milestones.size() - m;
-                        String detail = t("palier") + " " + number + "  +" +
-                                milestone.points + " " + t("points") +
-                                crosses(milestone.failureMarks) +
-                                (milestone.removed ? " · " + t("removed") : "");
-                        TextView tier = text(detail, 14, milestone.removed ? MUTED : INK, false);
-                        tier.setPadding(dp(12), dp(4), 0, dp(4));
-                        layout.addView(tier);
-                    }
-                }
-            }
-        }
+        GameDatabase.Player currentPlayer = players.get(currentPosition);
+        TextView currentTurn = text(t("current_turn") + currentPlayer.name, 21, GREEN, true);
+        currentTurn.setPadding(dp(14), dp(12), dp(14), dp(12));
+        currentTurn.setBackground(round(0xFFEAF4F0, 12, 0xFFD4E7DF));
+        layout.addView(currentTurn);
+        TextView target = text(t("target"), 13, MUTED, false);
+        target.setPadding(dp(14), dp(4), 0, dp(4));
+        layout.addView(target);
 
         if (database.isFinished(gameId)) {
             TextView finished = text(t("finished"), 15, GREEN, true);
             finished.setPadding(0, dp(18), 0, dp(8));
             layout.addView(finished);
         } else {
-            section(layout, t("record"));
+            TextView recordHeading = text(t("record"), 17, INK, true);
+            recordHeading.setPadding(0, dp(8), 0, dp(2));
+            layout.addView(recordHeading);
             Spinner playerSpinner = new Spinner(this);
             List<String> playerNames = new ArrayList<>();
             for (GameDatabase.Player player : players) playerNames.add(player.name);
             playerSpinner.setAdapter(adapter(playerNames));
             playerSpinner.setSelection(currentPosition);
-            playerSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    selectedPlayerPosition = position;
-                }
-                @Override public void onNothingSelected(AdapterView<?> parent) { }
-            });
             layout.addView(playerSpinner);
             EditText points = input(t("points_hint"),
                     InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
-            LinearLayout.LayoutParams pointsParams = new LinearLayout.LayoutParams(-1, -2);
-            pointsParams.setMargins(0, dp(10), 0, dp(4));
-            layout.addView(points, pointsParams);
-            button(layout, t("save_score"), true, () -> {
+            points.setImeOptions(EditorInfo.IME_ACTION_DONE);
+            LinearLayout inputRow = new LinearLayout(this);
+            inputRow.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams pointsParams = new LinearLayout.LayoutParams(0, -2, 1);
+            pointsParams.setMargins(0, dp(4), dp(8), dp(4));
+            inputRow.addView(points, pointsParams);
+            TextView save = compactButton(t("save_score"), true);
+            inputRow.addView(save);
+            layout.addView(inputRow);
+            Runnable saveScore = () -> {
                 String value = points.getText().toString().trim();
                 try {
                     int amount = Integer.parseInt(value);
@@ -438,6 +457,14 @@ public final class MainActivity extends Activity {
                 } catch (NumberFormatException exception) {
                     toast(t("enter_points"));
                 }
+            };
+            save.setOnClickListener(v -> saveScore.run());
+            points.setOnEditorActionListener((view, actionId, event) -> {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    saveScore.run();
+                    return true;
+                }
+                return false;
             });
             button(layout, t("failure"), false, () -> {
                 int playerPosition = playerSpinner.getSelectedItemPosition();
@@ -456,6 +483,40 @@ public final class MainActivity extends Activity {
             });
         }
 
+        section(layout, t("scoreboard"));
+        TextView detailsHint = text(t("tap_details"), 12, MUTED, false);
+        detailsHint.setPadding(0, 0, 0, dp(4));
+        layout.addView(detailsHint);
+        for (int i = 0; i < players.size(); i++) {
+            GameDatabase.Player player = players.get(i);
+            LinearLayout card = new LinearLayout(this);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(14), dp(9), dp(12), dp(9));
+            card.setBackground(round(i == currentPosition ? 0xFFEAF4F0 : WHITE,
+                    12, i == currentPosition ? 0xFFD4E7DF : LINE));
+            TextView name = text(player.name, 16, INK, true);
+            TextView score = text(t("total") + ": " + formatScore(player.score),
+                    15, GREEN, true);
+            String crossMarks = crosses(Math.min(2,
+                    database.currentFailureMarks(gameId, player.id)));
+            TextView details = text(t("details"), 12, MUTED, true);
+            card.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            card.addView(score);
+            if (!crossMarks.isEmpty()) {
+                TextView spacedCrosses = text("  " + crossMarks, 14, 0xFFB54747, true);
+                card.addView(spacedCrosses);
+            }
+            LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-2, -2);
+            detailsParams.setMargins(dp(10), 0, 0, 0);
+            card.addView(details, detailsParams);
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, -2);
+            cardParams.setMargins(0, dp(3), 0, dp(3));
+            layout.addView(card, cardParams);
+            card.setFocusable(true);
+            card.setContentDescription(t("detail_title") + player.name);
+            card.setOnClickListener(v -> showPlayerDetails(gameId, player));
+        }
+
         section(layout, t("evolution"));
         List<GameDatabase.Entry> entries = database.entries(gameId);
         if (entries.isEmpty()) {
@@ -467,7 +528,8 @@ public final class MainActivity extends Activity {
             row.setPadding(0, dp(10), 0, dp(10));
             TextView detail = text(entry.playerName + "  ·  " + entryLabel(entry) +
                     (entry.points == 0 ? "" : "  " + (entry.points > 0 ? "+" : "") + entry.points +
-                            " " + t("points")), 15, INK, false);
+                            " " + t("points")) + "  ·  " + t("total") + ": " +
+                    formatScore(entry.totalAfter), 15, INK, false);
             row.addView(detail);
             TextView date = text(DateFormat.getDateTimeInstance(DateFormat.SHORT,
                     DateFormat.SHORT, locale()).format(new Date(entry.createdAt)), 12, MUTED, false);

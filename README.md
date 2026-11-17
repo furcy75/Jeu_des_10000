@@ -13,7 +13,10 @@ base SQLite privée de l'application sur le téléphone.
 - Passer automatiquement au joueur suivant après un score ou un échec.
 - Suivre les échecs par palier ; au troisième, retirer le gain de ce palier.
 - En cas d'égalité, retirer en cascade le dernier gain des adversaires concernés.
-- Consulter l'évolution des scores et annuler une saisie (avec confirmation).
+- Voir les paliers les plus récents en premier, avec le total atteint.
+- Toucher un joueur pour consulter son détail, même si ce n'est pas son tour.
+- Consulter l'évolution des scores et les totaux après chaque saisie.
+- Annuler une saisie (avec confirmation).
 - Lire les règles en français, anglais ou espagnol.
 - Consommation réduite : aucune publicité, connexion réseau, animation continue ni tâche en arrière-plan.
 
@@ -28,13 +31,14 @@ racine du projet :
 
 L'APK de test est généré dans `app/build/outputs/apk/debug/app-debug.apk`.
 Une copie de l'APK debug est également conservée dans le dépôt :
-`apk/jeu-des-10000-v1.0-debug.apk`. Il s'agit d'une version de test,
-pas d'un APK de production signé.
+`apk/jeu-des-10000-v1.1-debug.apk`. Les versions précédentes restent
+archivées dans `apk/`. Il s'agit d'une version de test, pas d'un APK de
+production signé.
 
 Pour installer la copie conservée sur un appareil connecté avec ADB :
 
 ```sh
-adb install -r apk/jeu-des-10000-v1.0-debug.apk
+adb install -r apk/jeu-des-10000-v1.1-debug.apk
 ```
 
 Le projet utilise le plugin Android Gradle et son wrapper Gradle ; Gradle peut

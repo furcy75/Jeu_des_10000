@@ -143,13 +143,16 @@ final class GameDatabase extends SQLiteOpenHelper {
         List<Milestone> result = new ArrayList<>();
         String sql = "SELECT s.points, s.failure_marks, EXISTS(SELECT 1 FROM score_entries p " +
                 "WHERE p.source_entry_id=s.id AND p.kind IN ('theft','three_failures')) " +
+                ", (SELECT COALESCE(SUM(e.points), 0) FROM score_entries e " +
+                "WHERE e.player_id=s.player_id AND e.id<=s.id " +
+                "AND e.kind NOT IN ('legacy_theft','opening_ignored')) " +
                 "FROM score_entries s WHERE s.game_id=? AND s.player_id=? AND s.kind='score' " +
                 "ORDER BY s.id DESC LIMIT 20";
         try (Cursor cursor = getReadableDatabase().rawQuery(sql,
                 new String[]{Long.toString(gameId), Long.toString(playerId)})) {
             while (cursor.moveToNext()) {
                 result.add(new Milestone(cursor.getInt(0), cursor.getInt(1),
-                        cursor.getInt(2) != 0));
+                        cursor.getInt(2) != 0, cursor.getInt(3)));
             }
         }
         return result;
@@ -157,14 +160,18 @@ final class GameDatabase extends SQLiteOpenHelper {
 
     List<Entry> entries(long gameId) {
         List<Entry> result = new ArrayList<>();
-        String sql = "SELECT e.id, p.name, e.points, e.kind, e.created_at " +
+        String sql = "SELECT e.id, p.name, e.points, e.kind, e.created_at, " +
+                "(SELECT COALESCE(SUM(previous.points), 0) FROM score_entries previous " +
+                "WHERE previous.player_id=e.player_id AND previous.id<=e.id " +
+                "AND previous.kind NOT IN ('legacy_theft','opening_ignored')) " +
                 "FROM score_entries e JOIN players p ON p.id=e.player_id " +
                 "WHERE e.game_id=? ORDER BY e.created_at DESC, e.id DESC LIMIT 50";
         try (Cursor cursor = getReadableDatabase().rawQuery(sql,
                 new String[]{Long.toString(gameId)})) {
             while (cursor.moveToNext()) {
                 result.add(new Entry(cursor.getLong(0), cursor.getString(1),
-                        cursor.getInt(2), cursor.getString(3), cursor.getLong(4)));
+                        cursor.getInt(2), cursor.getString(3), cursor.getLong(4),
+                        cursor.getInt(5)));
             }
         }
         return result;
@@ -479,13 +486,15 @@ final class GameDatabase extends SQLiteOpenHelper {
         final int points;
         final String kind;
         final long createdAt;
+        final int totalAfter;
 
-        Entry(long id, String playerName, int points, String kind, long createdAt) {
+        Entry(long id, String playerName, int points, String kind, long createdAt, int totalAfter) {
             this.id = id;
             this.playerName = playerName;
             this.points = points;
             this.kind = kind;
             this.createdAt = createdAt;
+            this.totalAfter = totalAfter;
         }
     }
 
@@ -520,11 +529,13 @@ final class GameDatabase extends SQLiteOpenHelper {
         final int points;
         final int failureMarks;
         final boolean removed;
+        final int totalAfter;
 
-        Milestone(int points, int failureMarks, boolean removed) {
+        Milestone(int points, int failureMarks, boolean removed, int totalAfter) {
             this.points = points;
             this.failureMarks = failureMarks;
             this.removed = removed;
+            this.totalAfter = totalAfter;
         }
     }
 }
