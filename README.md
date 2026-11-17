@@ -46,7 +46,7 @@ l’application sont décrites dans [REGLES.md](./REGLES.md).
 
 La version courante est disponible ici :
 
-**[Télécharger l’APK de test 1.9](./apk/jeu-des-10000-v1.9-debug.apk)**
+**[Télécharger l’APK de test 1.9](https://github.com/furcy75/Jeu_des_10000/releases/download/v1.9/jeu-des-10000-v1.9-debug.apk)**
 
 Il s’agit d’un APK **debug**, destiné aux tests et non signé pour une
 distribution de production. Pour l’installer avec Android Debug Bridge (ADB),
