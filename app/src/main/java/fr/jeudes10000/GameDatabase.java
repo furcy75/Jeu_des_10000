@@ -125,7 +125,8 @@ final class GameDatabase extends SQLiteOpenHelper {
         List<Player> result = new ArrayList<>();
         String sql = "SELECT p.id, p.name, COALESCE(SUM(e.points), 0) " +
                 "FROM players p LEFT JOIN score_entries e " +
-                "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
+                "ON e.game_id=p.game_id AND e.player_id=p.id " +
+                "AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
                 "WHERE p.game_id=? GROUP BY p.id ORDER BY p.position";
         try (Cursor cursor = getReadableDatabase().rawQuery(sql,
                 new String[]{Long.toString(gameId)})) {
@@ -404,13 +405,17 @@ final class GameDatabase extends SQLiteOpenHelper {
 
     private List<Long> playersAtScore(SQLiteDatabase db, long gameId, long playerId, int score) {
         List<Long> result = new ArrayList<>();
-        String sql = "SELECT p.id FROM players p WHERE p.game_id=? AND p.id!=? " +
-                "AND (SELECT COALESCE(SUM(e.points),0) FROM score_entries e " +
-                "WHERE e.game_id=p.game_id AND e.player_id=p.id " +
-                "AND e.kind NOT IN ('legacy_theft','opening_ignored'))=? ORDER BY p.position";
-        try (Cursor cursor = db.rawQuery(sql, new String[]{
-                Long.toString(gameId), Long.toString(playerId), Integer.toString(score)})) {
-            while (cursor.moveToNext()) result.add(cursor.getLong(0));
+        String sql = "SELECT p.id, COALESCE(SUM(e.points), 0) " +
+                "FROM players p LEFT JOIN score_entries e " +
+                "ON e.game_id=p.game_id AND e.player_id=p.id " +
+                "AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
+                "WHERE p.game_id=? GROUP BY p.id ORDER BY p.position";
+        try (Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(gameId)})) {
+            while (cursor.moveToNext()) {
+                if (cursor.getLong(0) != playerId && cursor.getInt(1) == score) {
+                    result.add(cursor.getLong(0));
+                }
+            }
         }
         return result;
     }
