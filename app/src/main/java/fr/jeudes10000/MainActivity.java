@@ -1,0 +1,512 @@
+package fr.jeudes10000;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.os.Build;
+import android.os.Bundle;
+import android.text.InputType;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.NumberPicker;
+import android.widget.ScrollView;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+public final class MainActivity extends Activity {
+    private static final int TARGET_SCORE = 10000;
+    private static final int INK = 0xFF18312C;
+    private static final int MUTED = 0xFF64756F;
+    private static final int GREEN = 0xFF167D68;
+    private static final int BACKGROUND = 0xFFF5F7F6;
+    private static final int WHITE = 0xFFFFFFFF;
+    private static final int LINE = 0xFFE2E9E6;
+
+    private static final Map<String, String[]> TEXT = new HashMap<>();
+    static {
+        TEXT.put("home", new String[]{"Jeu des 10 000", "10,000 Dice Game", "Juego de los 10 000"});
+        TEXT.put("tagline", new String[]{"Une partie, tous les scores, sans rien perdre.", "One game, every score, nothing lost.", "Una partida, todos los puntos, sin perder nada."});
+        TEXT.put("resume", new String[]{"Reprendre la partie", "Resume game", "Continuar partida"});
+        TEXT.put("no_active", new String[]{"Aucune partie en cours", "No game in progress", "No hay partidas en curso"});
+        TEXT.put("new_game", new String[]{"Nouvelle partie", "New game", "Nueva partida"});
+        TEXT.put("recent", new String[]{"Dernières parties", "Recent games", "Partidas recientes"});
+        TEXT.put("rules", new String[]{"Règles du jeu", "Game rules", "Reglas del juego"});
+        TEXT.put("language", new String[]{"Langue", "Language", "Idioma"});
+        TEXT.put("players", new String[]{"Joueurs", "Players", "Jugadores"});
+        TEXT.put("choose_players", new String[]{"Choisissez le nombre de joueurs et leurs noms.", "Choose the number of players and their names.", "Elige el número de jugadores y sus nombres."});
+        TEXT.put("start", new String[]{"Commencer la partie", "Start game", "Empezar partida"});
+        TEXT.put("back", new String[]{"Retour", "Back", "Volver"});
+        TEXT.put("scoreboard", new String[]{"Scores", "Scoreboard", "Marcador"});
+        TEXT.put("target", new String[]{"Objectif : 10 000 points", "Target: 10,000 points", "Objetivo: 10 000 puntos"});
+        TEXT.put("record", new String[]{"Inscrire un score", "Record a score", "Anotar puntos"});
+        TEXT.put("select_player", new String[]{"Choisir un joueur", "Choose a player", "Elegir jugador"});
+        TEXT.put("points_hint", new String[]{"Points (négatif pour une correction)", "Points (negative to correct)", "Puntos (negativos para corregir)"});
+        TEXT.put("save_score", new String[]{"Ajouter les points", "Add points", "Añadir puntos"});
+        TEXT.put("failure", new String[]{"Échec : tour perdu", "Farkle: turn lost", "Fallo: turno perdido"});
+        TEXT.put("evolution", new String[]{"Évolution des scores", "Score history", "Evolución de puntos"});
+        TEXT.put("nothing_yet", new String[]{"Aucune saisie pour le moment.", "No scores recorded yet.", "Todavía no hay puntuaciones."});
+        TEXT.put("undo", new String[]{"Annuler", "Undo", "Deshacer"});
+        TEXT.put("confirm_undo", new String[]{"Supprimer cette saisie ? Le total sera recalculé.", "Delete this entry? The total will be recalculated.", "¿Eliminar esta anotación? Se recalculará el total."});
+        TEXT.put("cancel", new String[]{"Garder", "Keep", "Conservar"});
+        TEXT.put("confirm", new String[]{"Supprimer", "Delete", "Eliminar"});
+        TEXT.put("no_players", new String[]{"Ajoutez au moins 2 joueurs.", "Add at least 2 players.", "Añade al menos 2 jugadores."});
+        TEXT.put("enter_points", new String[]{"Saisissez un nombre de points différent de zéro.", "Enter a non-zero number of points.", "Introduce una cantidad de puntos distinta de cero."});
+        TEXT.put("wins", new String[]{"Victoire de", "Winner:", "Ganador:"});
+        TEXT.put("finished", new String[]{"Partie terminée", "Game finished", "Partida terminada"});
+        TEXT.put("ongoing", new String[]{"En cours", "In progress", "En curso"});
+        TEXT.put("no_history", new String[]{"Aucune partie enregistrée.", "No games recorded.", "No hay partidas guardadas."});
+        TEXT.put("game", new String[]{"Partie", "Game", "Partida"});
+        TEXT.put("failure_event", new String[]{"Échec", "Farkle", "Fallo"});
+        TEXT.put("correction", new String[]{"Correction", "Correction", "Corrección"});
+        TEXT.put("points", new String[]{"points", "points", "puntos"});
+        TEXT.put("theft", new String[]{"Vol de points", "Points stolen", "Robo de puntos"});
+        TEXT.put("legacy_theft", new String[]{"Ancien score annulé", "Previous score voided", "Puntuación anterior anulada"});
+        TEXT.put("three_failures", new String[]{"Perte après 3 échecs", "Loss after 3 failures", "Pérdida tras 3 fallos"});
+        TEXT.put("rules_intro", new String[]{"Une variante courante : convenez des règles avant de commencer, car elles varient selon les tables.", "A common variant: agree on the rules before playing, as they vary between tables.", "Una variante habitual: acordad las reglas antes de jugar, ya que varían según la mesa."});
+        TEXT.put("rules_body", new String[]{
+                "But : atteindre 10 000 points. Les points des combinaisons sont saisis manuellement.\n\n• Chaque 1 vaut 100 points ; chaque 5 vaut 50 points.\n• Brelan : trois 1 valent 1 000 ; trois dés identiques de 2 à 6 valent face x 100.\n• Quatre, cinq ou six dés identiques valent 2x, 3x ou 4x la valeur du brelan.\n• Suite de 1 à 6 : 1 500 points. Trois paires : 1 500 points.\n• Échec : aucun point marqué arrête le tour et rapporte 0. À trois échecs consécutifs, le dernier gain du joueur est retiré.\n• Égalité : si un joueur rejoint exactement le total d'un ou plusieurs adversaires, chacun de ces adversaires perd les points de son dernier tour réussi.\n\nLes variantes (seuil d'ouverture, combinaisons, fin de partie) changent selon les joueurs. Cette application suit les scores, elle ne lance pas les dés.",
+                "Goal: reach 10,000 points. Enter the points for each scoring combination manually.\n\n• Each 1 is worth 100 points; each 5 is worth 50.\n• Three of a kind: three 1s are worth 1,000; three matching dice from 2 to 6 are worth face value x 100.\n• Four, five, or six matching dice are worth 2x, 3x, or 4x the three-of-a-kind score.\n• Straight from 1 to 6: 1,500 points. Three pairs: 1,500 points.\n• Farkle: scoring no combination ends the turn and scores 0. After three consecutive failures, the player's latest gain is removed.\n• Tie: if a player reaches exactly the same total as one or more opponents, each tied opponent loses the points from their latest successful turn.\n\nVariations (opening threshold, combinations, game end) differ between groups. This app tracks scores; it does not roll dice.",
+                "Objetivo: llegar a 10 000 puntos. Anota manualmente los puntos de cada combinación.\n\n• Cada 1 vale 100 puntos; cada 5 vale 50.\n• Trío: tres 1 valen 1 000; tres dados iguales del 2 al 6 valen cara x 100.\n• Cuatro, cinco o seis dados iguales valen 2x, 3x o 4x el valor del trío.\n• Escalera del 1 al 6: 1 500 puntos. Tres parejas: 1 500 puntos.\n• Fallo: no conseguir una combinación termina el turno y suma 0. Tras tres fallos consecutivos, se quitan los últimos puntos ganados por el jugador.\n• Empate: si un jugador alcanza exactamente el mismo total que uno o varios rivales, cada rival empatado pierde los puntos de su último turno exitoso.\n\nLas variantes (umbral de apertura, combinaciones y final) dependen del grupo. Esta aplicación registra puntos, no lanza dados."
+        });
+        TEXT.put("language_names", new String[]{"Français", "English", "Español"});
+        TEXT.put("player_default", new String[]{"Joueur ", "Player ", "Jugador "});
+        TEXT.put("entry_saved", new String[]{"Score enregistré.", "Score saved.", "Puntuación guardada."});
+        TEXT.put("tie_message", new String[]{
+                "Égalité : chaque adversaire à ce total perd les points de son dernier tour réussi.",
+                "Tie: each opponent at that total loses the points from their latest successful turn.",
+                "Empate: cada rival con ese total pierde los puntos de su último turno exitoso."
+        });
+        TEXT.put("three_failures_message", new String[]{
+                "Trois échecs consécutifs : le gain de votre dernier tour réussi est retiré.",
+                "Three consecutive failures: your latest successful turn's points are removed.",
+                "Tres fallos consecutivos: se quitan los puntos de tu último turno exitoso."
+        });
+        TEXT.put("no_score_to_remove", new String[]{
+                "Trois échecs consécutifs, mais aucun gain précédent à retirer.",
+                "Three consecutive failures, but there is no previous score to remove.",
+                "Tres fallos consecutivos, pero no hay puntos anteriores que quitar."
+        });
+        TEXT.put("done", new String[]{"Terminer", "Finish", "Terminar"});
+    }
+
+    private GameDatabase database;
+    private int language;
+    private EditText[] playerNameFields;
+    private NumberPicker playerCountPicker;
+    private int selectedPlayerPosition;
+    private long currentGameId = -1;
+
+    @Override
+    protected void onCreate(Bundle state) {
+        super.onCreate(state);
+        getWindow().setStatusBarColor(BACKGROUND);
+        getWindow().setNavigationBarColor(BACKGROUND);
+        database = new GameDatabase(this);
+        language = getPreferences(MODE_PRIVATE).getInt("language", 0);
+        if (state != null) {
+            language = state.getInt("language", language);
+            currentGameId = state.getLong("game_id", -1);
+        }
+        showHome();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        out.putInt("language", language);
+        out.putLong("game_id", currentGameId);
+        super.onSaveInstanceState(out);
+    }
+
+    @Override
+    protected void onDestroy() {
+        database.close();
+        super.onDestroy();
+    }
+
+    private String t(String key) {
+        String[] values = TEXT.get(key);
+        return values == null ? key : values[language];
+    }
+
+    private void setScreen(LinearLayout content) {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(BACKGROUND);
+        if (Build.VERSION.SDK_INT >= 35) {
+            scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+                android.graphics.Insets bars = insets.getInsets(
+                        android.view.WindowInsets.Type.systemBars()
+                                | android.view.WindowInsets.Type.displayCutout());
+                view.setPadding(0, bars.top, 0, bars.bottom);
+                return insets;
+            });
+        }
+        scroll.addView(content);
+        setContentView(scroll);
+        if (Build.VERSION.SDK_INT >= 35) scroll.requestApplyInsets();
+    }
+
+    private LinearLayout page() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(24), dp(24), dp(24), dp(32));
+        layout.setBackgroundColor(BACKGROUND);
+        return layout;
+    }
+
+    private void heading(LinearLayout layout, String title, String subtitle) {
+        TextView titleView = text(title, 30, INK, true);
+        titleView.setPadding(0, dp(12), 0, dp(6));
+        layout.addView(titleView);
+        if (subtitle != null) {
+            TextView subtitleView = text(subtitle, 15, MUTED, false);
+            subtitleView.setPadding(0, 0, 0, dp(18));
+            layout.addView(subtitleView);
+        }
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView view = new TextView(this);
+        view.setText(value);
+        view.setTextSize(size);
+        view.setTextColor(color);
+        if (bold) view.setTypeface(null, android.graphics.Typeface.BOLD);
+        return view;
+    }
+
+    private void section(LinearLayout layout, String value) {
+        TextView view = text(value, 19, INK, true);
+        view.setPadding(0, dp(22), 0, dp(10));
+        layout.addView(view);
+    }
+
+    private void button(LinearLayout layout, String label, boolean primary, Runnable action) {
+        TextView view = text(label, 16, primary ? WHITE : GREEN, true);
+        view.setGravity(Gravity.CENTER);
+        view.setMinHeight(dp(52));
+        view.setPadding(dp(16), dp(12), dp(16), dp(12));
+        view.setBackground(round(primary ? GREEN : WHITE, 14, primary ? GREEN : LINE));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, dp(7), 0, dp(7));
+        layout.addView(view, params);
+        view.setOnClickListener(v -> action.run());
+    }
+
+    private android.graphics.drawable.GradientDrawable round(int color, int radius, int stroke) {
+        android.graphics.drawable.GradientDrawable drawable =
+                new android.graphics.drawable.GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(dp(radius));
+        drawable.setStroke(dp(1), stroke);
+        return drawable;
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private EditText input(String hint, int inputType) {
+        EditText edit = new EditText(this);
+        edit.setSingleLine(true);
+        edit.setTextSize(16);
+        edit.setTextColor(INK);
+        edit.setHintTextColor(MUTED);
+        edit.setHint(hint);
+        edit.setInputType(inputType);
+        edit.setPadding(dp(14), dp(10), dp(14), dp(10));
+        edit.setBackground(round(WHITE, 12, LINE));
+        return edit;
+    }
+
+    private void showHome() {
+        currentGameId = -1;
+        LinearLayout layout = page();
+        heading(layout, t("home"), t("tagline"));
+        section(layout, t("language"));
+        Spinner languageSpinner = new Spinner(this);
+        languageSpinner.setAdapter(adapter(Arrays.asList(TEXT.get("language_names"))));
+        languageSpinner.setSelection(language);
+        layout.addView(languageSpinner);
+        languageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            boolean initialized;
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (!initialized) { initialized = true; return; }
+                language = position;
+                getPreferences(MODE_PRIVATE).edit().putInt("language", language).apply();
+                showHome();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        });
+
+        List<GameDatabase.Game> active = database.games("active", 1);
+        section(layout, t("resume"));
+        if (active.isEmpty()) {
+            TextView empty = text(t("no_active"), 15, MUTED, false);
+            empty.setPadding(0, dp(8), 0, dp(8));
+            layout.addView(empty);
+        } else {
+            GameDatabase.Game game = active.get(0);
+            button(layout, t("resume"), true, () -> showGame(game.id));
+        }
+        button(layout, t("new_game"), active.isEmpty(), this::showSetup);
+        button(layout, t("recent"), false, this::showHistory);
+        button(layout, t("rules"), false, this::showRules);
+        setScreen(layout);
+    }
+
+    private void showSetup() {
+        LinearLayout layout = page();
+        heading(layout, t("new_game"), t("choose_players"));
+        section(layout, t("players"));
+        playerCountPicker = new NumberPicker(this);
+        playerCountPicker.setMinValue(2);
+        playerCountPicker.setMaxValue(8);
+        playerCountPicker.setWrapSelectorWheel(false);
+        playerCountPicker.setValue(2);
+        layout.addView(playerCountPicker, new LinearLayout.LayoutParams(-1, dp(110)));
+        LinearLayout fields = new LinearLayout(this);
+        fields.setOrientation(LinearLayout.VERTICAL);
+        layout.addView(fields);
+        playerNameFields = new EditText[2];
+        rebuildNameFields(fields, 2, null);
+        playerCountPicker.setOnValueChangedListener((picker, oldValue, newValue) ->
+                rebuildNameFields(fields, newValue, playerNameFields));
+        button(layout, t("start"), true, () -> {
+            List<String> names = new ArrayList<>();
+            for (int i = 0; i < playerNameFields.length; i++) {
+                String name = playerNameFields[i].getText().toString().trim();
+                if (name.isEmpty()) name = t("player_default") + (i + 1);
+                names.add(name);
+            }
+            if (names.size() < 2) {
+                toast(t("no_players"));
+                return;
+            }
+            showGame(database.createGame(names));
+        });
+        button(layout, t("back"), false, this::showHome);
+        setScreen(layout);
+    }
+
+    private void rebuildNameFields(LinearLayout container, int count, EditText[] previous) {
+        String[] names = new String[count];
+        if (previous != null) {
+            for (int i = 0; i < Math.min(previous.length, count); i++) {
+                names[i] = previous[i].getText().toString();
+            }
+        }
+        container.removeAllViews();
+        playerNameFields = new EditText[count];
+        for (int i = 0; i < count; i++) {
+            EditText field = input(t("player_default") + (i + 1),
+                    InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+            if (names[i] != null) field.setText(names[i]);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+            params.setMargins(0, dp(5), 0, dp(5));
+            container.addView(field, params);
+            playerNameFields[i] = field;
+        }
+    }
+
+    private void showGame(long gameId) {
+        currentGameId = gameId;
+        List<GameDatabase.Player> players = database.players(gameId);
+        if (players.isEmpty()) {
+            showHome();
+            return;
+        }
+        LinearLayout layout = page();
+        heading(layout, t("scoreboard"), t("target"));
+        for (GameDatabase.Player player : players) {
+            LinearLayout card = new LinearLayout(this);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(16), dp(12), dp(16), dp(12));
+            card.setBackground(round(WHITE, 14, LINE));
+            TextView name = text(player.name, 17, INK, true);
+            TextView score = text(String.format(Locale.getDefault(), "%,d", player.score), 22, GREEN, true);
+            card.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            card.addView(score);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+            params.setMargins(0, dp(4), 0, dp(4));
+            layout.addView(card, params);
+        }
+
+        if (database.isFinished(gameId)) {
+            TextView finished = text(t("finished"), 15, GREEN, true);
+            finished.setPadding(0, dp(18), 0, dp(8));
+            layout.addView(finished);
+        } else {
+            section(layout, t("record"));
+            Spinner playerSpinner = new Spinner(this);
+            List<String> playerNames = new ArrayList<>();
+            for (GameDatabase.Player player : players) playerNames.add(player.name);
+            playerSpinner.setAdapter(adapter(playerNames));
+            playerSpinner.setSelection(Math.min(selectedPlayerPosition, players.size() - 1));
+            playerSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    selectedPlayerPosition = position;
+                }
+                @Override public void onNothingSelected(AdapterView<?> parent) { }
+            });
+            layout.addView(playerSpinner);
+            EditText points = input(t("points_hint"),
+                    InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
+            LinearLayout.LayoutParams pointsParams = new LinearLayout.LayoutParams(-1, -2);
+            pointsParams.setMargins(0, dp(10), 0, dp(4));
+            layout.addView(points, pointsParams);
+            button(layout, t("save_score"), true, () -> {
+                String value = points.getText().toString().trim();
+                try {
+                    int amount = Integer.parseInt(value);
+                    if (amount == 0) {
+                        toast(t("enter_points"));
+                        return;
+                    }
+                    GameDatabase.Player selected = players.get(playerSpinner.getSelectedItemPosition());
+                    GameDatabase.EntryResult result = database.addEntry(gameId, selected.id, amount,
+                            amount < 0 ? "correction" : "score");
+                    points.setText("");
+                    toast(result.tiedPlayers > 0 ? t("tie_message") : t("entry_saved"));
+                    checkWinner(gameId);
+                    showGame(gameId);
+                } catch (NumberFormatException exception) {
+                    toast(t("enter_points"));
+                }
+            });
+            button(layout, t("failure"), false, () -> {
+                GameDatabase.Player selected = players.get(playerSpinner.getSelectedItemPosition());
+                GameDatabase.EntryResult result = database.addEntry(gameId, selected.id, 0, "failure");
+                if (!result.thirdFailure) {
+                    toast(t("entry_saved"));
+                } else {
+                    toast(result.failurePenalty ? t("three_failures_message") :
+                            t("no_score_to_remove"));
+                }
+                showGame(gameId);
+            });
+        }
+
+        section(layout, t("evolution"));
+        List<GameDatabase.Entry> entries = database.entries(gameId);
+        if (entries.isEmpty()) {
+            layout.addView(text(t("nothing_yet"), 14, MUTED, false));
+        }
+        for (GameDatabase.Entry entry : entries) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(0, dp(10), 0, dp(10));
+            TextView detail = text(entry.playerName + "  ·  " + entryLabel(entry) +
+                    (entry.points == 0 ? "" : "  " + (entry.points > 0 ? "+" : "") + entry.points +
+                            " " + t("points")), 15, INK, false);
+            row.addView(detail);
+            TextView date = text(DateFormat.getDateTimeInstance(DateFormat.SHORT,
+                    DateFormat.SHORT, locale()).format(new Date(entry.createdAt)), 12, MUTED, false);
+            date.setPadding(0, dp(3), 0, 0);
+            row.addView(date);
+            layout.addView(row);
+            View divider = new View(this);
+            divider.setBackgroundColor(LINE);
+            layout.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+            TextView undo = text(t("undo"), 14, GREEN, true);
+            undo.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            undo.setPadding(0, dp(8), 0, dp(4));
+            layout.addView(undo);
+            undo.setOnClickListener(v -> confirmDelete(entry.id, gameId));
+        }
+        button(layout, t("back"), false, this::showHome);
+        setScreen(layout);
+    }
+
+    private String entryLabel(GameDatabase.Entry entry) {
+        if (entry.kind.equals("failure")) return t("failure_event");
+        if (entry.kind.equals("correction")) return t("correction");
+        if (entry.kind.equals("theft")) return t("theft");
+        if (entry.kind.equals("three_failures")) return t("three_failures");
+        if (entry.kind.equals("legacy_theft")) return t("legacy_theft");
+        return t("scoreboard");
+    }
+
+    private void checkWinner(long gameId) {
+        List<GameDatabase.Player> players = database.players(gameId);
+        for (GameDatabase.Player player : players) {
+            if (player.score >= TARGET_SCORE) {
+                database.finishGame(gameId, player.id);
+                new AlertDialog.Builder(this)
+                        .setTitle(t("finished"))
+                        .setMessage(t("wins") + " " + player.name + "!")
+                        .setPositiveButton("OK", (dialog, which) -> showGame(gameId))
+                        .show();
+                return;
+            }
+        }
+    }
+
+    private void confirmDelete(long entryId, long gameId) {
+        new AlertDialog.Builder(this)
+                .setMessage(t("confirm_undo"))
+                .setNegativeButton(t("cancel"), null)
+                .setPositiveButton(t("confirm"), (dialog, which) -> {
+                    database.deleteEntry(entryId, gameId);
+                    showGame(gameId);
+                })
+                .show();
+    }
+
+    private void showHistory() {
+        LinearLayout layout = page();
+        heading(layout, t("recent"), null);
+        List<GameDatabase.Game> games = database.games(null, 30);
+        if (games.isEmpty()) layout.addView(text(t("no_history"), 15, MUTED, false));
+        for (GameDatabase.Game game : games) {
+            String status = game.status.equals("finished") ? t("wins") + " " +
+                    database.playerName(game.winnerId) : t("ongoing");
+            String title = t("game") + " · " +
+                    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale())
+                            .format(new Date(game.createdAt));
+            button(layout, title + "\n" + status, false, () -> showGame(game.id));
+        }
+        button(layout, t("back"), false, this::showHome);
+        setScreen(layout);
+    }
+
+    private void showRules() {
+        LinearLayout layout = page();
+        heading(layout, t("rules"), t("rules_intro"));
+        TextView body = text(t("rules_body"), 16, INK, false);
+        body.setLineSpacing(dp(5), 1f);
+        body.setPadding(dp(16), dp(16), dp(16), dp(16));
+        body.setBackground(round(WHITE, 14, LINE));
+        layout.addView(body);
+        button(layout, t("back"), false, this::showHome);
+        setScreen(layout);
+    }
+
+    private ArrayAdapter<String> adapter(List<String> values) {
+        ArrayAdapter<String> result = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, values);
+        result.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        return result;
+    }
+
+    private Locale locale() {
+        return language == 1 ? Locale.ENGLISH : language == 2 ? new Locale("es") : Locale.FRENCH;
+    }
+
+    private void toast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+}
