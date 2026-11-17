@@ -25,10 +25,14 @@ racine du projet :
 ```
 
 L'APK de test est généré dans `app/build/outputs/apk/debug/app-debug.apk`.
-Pour l'installer sur un appareil Android connecté avec ADB :
+Une copie de l'APK debug est également conservée dans le dépôt :
+`apk/jeu-des-10000-v1.0-debug.apk`. Il s'agit d'une version de test,
+pas d'un APK de production signé.
+
+Pour installer la copie conservée sur un appareil connecté avec ADB :
 
 ```sh
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r apk/jeu-des-10000-v1.0-debug.apk
 ```
 
 Le projet utilise le plugin Android Gradle et son wrapper Gradle ; Gradle peut
