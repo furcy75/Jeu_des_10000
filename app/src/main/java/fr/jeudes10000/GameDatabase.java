@@ -8,9 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 final class GameDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "jeu_10000.db";
@@ -190,6 +188,7 @@ final class GameDatabase extends SQLiteOpenHelper {
         boolean openingRejected = false;
         boolean failureThresholdReached = false;
         boolean failurePenalty = false;
+        boolean resolveTies = false;
         int tiedPlayers = 0;
         try {
             String storedKind = kind;
@@ -214,7 +213,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             long entryId = db.insertOrThrow("score_entries", null, entry);
 
             if (storedKind.equals("score")) {
-                tiedPlayers = applyTieCascade(db, gameId, playerId, now);
+                resolveTies = true;
             } else if (kind.equals("failure")) {
                 FailureResult result = recordFailure(db, gameId, playerId, now);
                 failureThresholdReached = result.thresholdReached;
@@ -225,9 +224,11 @@ final class GameDatabase extends SQLiteOpenHelper {
                     db.update("score_entries", failure, "id=?",
                             new String[]{Long.toString(entryId)});
                 }
-                if (failurePenalty) {
-                    tiedPlayers = applyTieCascade(db, gameId, playerId, now);
-                }
+                resolveTies = true;
+            }
+
+            if (resolveTies) {
+                tiedPlayers = applyTieCascade(db, gameId, playerId, now);
             }
 
             closePlayersAtOrBelowZero(db, gameId);
@@ -288,13 +289,12 @@ final class GameDatabase extends SQLiteOpenHelper {
     private int applyTieCascade(SQLiteDatabase db, long gameId, long firstPlayerId,
                                 long createdAt) {
         ArrayDeque<Long> changedPlayers = new ArrayDeque<>();
-        Set<String> visitedScores = new HashSet<>();
         changedPlayers.add(firstPlayerId);
         int penalties = 0;
+        // A score tier can be stolen only once, so each queued step consumes a finite tier.
         while (!changedPlayers.isEmpty()) {
             long playerId = changedPlayers.removeFirst();
             int score = playerScore(db, playerId);
-            if (!visitedScores.add(playerId + ":" + score)) continue;
             for (long tiedPlayerId : playersAtScore(db, gameId, playerId, score)) {
                 long palierId = latestActiveScoreId(db, gameId, tiedPlayerId);
                 if (palierId >= 0 && addPenaltyForScore(
