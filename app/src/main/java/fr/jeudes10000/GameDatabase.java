@@ -303,6 +303,56 @@ final class GameDatabase extends SQLiteOpenHelper {
         }
     }
 
+    int resolveExistingTies(long gameId) {
+        SQLiteDatabase db = getWritableDatabase();
+        long now = System.currentTimeMillis();
+        int penalties = 0;
+        db.beginTransaction();
+        try {
+            List<Long> playerIds = new ArrayList<>();
+            // Reconcile old ties from the most recent score-changing player first.
+            String playerOrder = "(SELECT COALESCE(MAX(e.id), 0) FROM score_entries e " +
+                    "WHERE e.game_id=players.game_id AND e.player_id=players.id " +
+                    "AND e.points!=0 AND e.kind NOT IN ('legacy_theft','opening_ignored')) DESC, " +
+                    "position";
+            try (Cursor cursor = db.query("players", new String[]{"id"}, "game_id=?",
+                    new String[]{Long.toString(gameId)}, null, null, playerOrder)) {
+                while (cursor.moveToNext()) playerIds.add(cursor.getLong(0));
+            }
+            for (long playerId : playerIds) {
+                penalties += applyTieCascade(db, gameId, playerId, now);
+            }
+            closePlayersAtOrBelowZero(db, gameId);
+            long winnerId = winnerIdForGame(db, gameId);
+            boolean outcomeChanged = false;
+            try (Cursor cursor = db.query("games", new String[]{"status", "winner_id"},
+                    "id=?", new String[]{Long.toString(gameId)}, null, null, null)) {
+                if (cursor.moveToFirst()) {
+                    boolean currentlyFinished = cursor.getString(0).equals("finished");
+                    long currentWinnerId = cursor.isNull(1) ? -1 : cursor.getLong(1);
+                    outcomeChanged = currentlyFinished != (winnerId >= 0) ||
+                            currentWinnerId != winnerId;
+                }
+            }
+            if (penalties > 0 || outcomeChanged) {
+                ContentValues update = new ContentValues();
+                update.put("updated_at", now);
+                if (winnerId >= 0) {
+                    update.put("status", "finished");
+                    update.put("winner_id", winnerId);
+                } else {
+                    update.put("status", "active");
+                    update.putNull("winner_id");
+                }
+                db.update("games", update, "id=?", new String[]{Long.toString(gameId)});
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return penalties;
+    }
+
     private int applyTieCascade(SQLiteDatabase db, long gameId, long firstPlayerId,
                                 long createdAt) {
         ArrayDeque<Long> changedPlayers = new ArrayDeque<>();
@@ -334,11 +384,22 @@ final class GameDatabase extends SQLiteOpenHelper {
     }
 
     private void closePlayersAtOrBelowZero(SQLiteDatabase db, long gameId) {
-        String sql = "UPDATE players SET opened=0 WHERE game_id=? AND COALESCE(" +
+        String sql = "UPDATE players SET opened=0 WHERE game_id=? AND opened!=0 AND COALESCE(" +
                 "(SELECT SUM(e.points) FROM score_entries e " +
                 "WHERE e.player_id=players.id " +
                 "AND e.kind NOT IN ('legacy_theft','opening_ignored')), 0)<=0";
         db.execSQL(sql, new Object[]{gameId});
+    }
+
+    private long winnerIdForGame(SQLiteDatabase db, long gameId) {
+        String sql = "SELECT p.id FROM players p LEFT JOIN score_entries e " +
+                "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
+                "WHERE p.game_id=? GROUP BY p.id " +
+                "HAVING COALESCE(SUM(e.points), 0)=? ORDER BY p.position LIMIT 1";
+        try (Cursor cursor = db.rawQuery(sql,
+                new String[]{Long.toString(gameId), Integer.toString(TARGET_SCORE)})) {
+            return cursor.moveToFirst() ? cursor.getLong(0) : -1;
+        }
     }
 
     private List<Long> playersAtScore(SQLiteDatabase db, long gameId, long playerId, int score) {
@@ -426,15 +487,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             db.delete("score_entries", "id=? AND game_id=?",
                     new String[]{Long.toString(entryId), Long.toString(gameId)});
             closePlayersAtOrBelowZero(db, gameId);
-            long winnerId = -1;
-            String winnerSql = "SELECT p.id FROM players p LEFT JOIN score_entries e " +
-                    "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
-                    "WHERE p.game_id=? GROUP BY p.id " +
-                    "HAVING COALESCE(SUM(e.points), 0)=? ORDER BY p.position LIMIT 1";
-            try (Cursor cursor = db.rawQuery(winnerSql,
-                    new String[]{Long.toString(gameId), Integer.toString(TARGET_SCORE)})) {
-                if (cursor.moveToFirst()) winnerId = cursor.getLong(0);
-            }
+            long winnerId = winnerIdForGame(db, gameId);
             ContentValues update = new ContentValues();
             update.put("updated_at", System.currentTimeMillis());
             if (winnerId >= 0) {

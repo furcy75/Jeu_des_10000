@@ -388,6 +388,9 @@ public final class MainActivity extends Activity {
 
     private void showGame(long gameId) {
         currentGameId = gameId;
+        if (database.resolveExistingTies(gameId) > 0) {
+            toast(t("tie_message") + " " + t("cascade_message"));
+        }
         List<GameDatabase.Player> players = database.players(gameId);
         if (players.isEmpty()) {
             showHome();
