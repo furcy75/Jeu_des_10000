@@ -8,7 +8,7 @@ base SQLite privée de l'application sur le téléphone.
 
 - Reprendre la partie en cours ou commencer une partie de 2 à 8 joueurs.
 - Consulter les parties récentes et leurs vainqueurs.
-- Exiger 600 points en un tour pour qu'un joueur entre dans la partie.
+- Exiger 600 points en un tour pour entrer, puis à nouveau si le total retombe à 0 ou moins.
 - Enregistrer des points, une correction positive ou négative, ou un échec.
 - Passer automatiquement au joueur suivant après un score ou un échec.
 - Suivre les échecs par palier ; au troisième, retirer le gain de ce palier.
@@ -31,14 +31,14 @@ racine du projet :
 
 L'APK de test est généré dans `app/build/outputs/apk/debug/app-debug.apk`.
 Une copie de l'APK debug est également conservée dans le dépôt :
-`apk/jeu-des-10000-v1.1-debug.apk`. Les versions précédentes restent
+`apk/jeu-des-10000-v1.2-debug.apk`. Les versions précédentes restent
 archivées dans `apk/`. Il s'agit d'une version de test, pas d'un APK de
 production signé.
 
 Pour installer la copie conservée sur un appareil connecté avec ADB :
 
 ```sh
-adb install -r apk/jeu-des-10000-v1.1-debug.apk
+adb install -r apk/jeu-des-10000-v1.2-debug.apk
 ```
 
 Le projet utilise le plugin Android Gradle et son wrapper Gradle ; Gradle peut

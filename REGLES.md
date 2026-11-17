@@ -10,7 +10,8 @@ nombreuses, convenez des règles avant de commencer.
 
 - Pour entrer dans la partie, chaque joueur doit marquer au moins 600 points
   en un seul tour. Un score inférieur est ignoré et ne compte pas comme un
-  échec ; une fois entré, le joueur n'a plus ce seuil à atteindre.
+  échec. Si son total retombe à 0 ou moins, il doit de nouveau marquer 600
+  points en un seul tour pour rouvrir son score.
 - Chaque 1 vaut 100 points ; chaque 5 vaut 50 points.
 - Brelan : trois 1 valent 1 000 points ; trois dés identiques de 2 à 6 valent
   la valeur du dé multipliée par 100.
@@ -39,7 +40,8 @@ varier selon les joueurs.
 
 - To enter the game, each player must score at least 600 points in one turn.
   A lower score is ignored and does not count as a failure; the threshold no
-  longer applies once the player has entered.
+  longer applies once the player has entered unless their total falls to 0 or
+  below; then they must score 600 points in one turn again to reopen.
 - Each 1 is worth 100 points; each 5 is worth 50 points.
 - Three of a kind: three 1s are worth 1,000 points; three matching dice from
   2 to 6 are worth the die value multiplied by 100.
@@ -66,8 +68,9 @@ group.
 **Objetivo:** llegar a 10 000 puntos.
 
 - Para entrar en la partida, cada jugador debe anotar al menos 600 puntos en
-  un solo turno. Una puntuación menor se ignora y no cuenta como fallo; el
-  umbral deja de aplicarse una vez que el jugador ha entrado.
+  un solo turno. Una puntuación menor se ignora y no cuenta como fallo. Si su
+  total vuelve a 0 o menos, debe anotar otros 600 puntos en un turno para
+  volver a abrir el marcador.
 - Cada 1 vale 100 puntos; cada 5 vale 50 puntos.
 - Trío: tres 1 valen 1 000 puntos; tres dados iguales del 2 al 6 valen el
   valor del dado multiplicado por 100.

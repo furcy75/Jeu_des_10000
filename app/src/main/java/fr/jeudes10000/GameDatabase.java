@@ -14,7 +14,7 @@ import java.util.Set;
 
 final class GameDatabase extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "jeu_10000.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
     private static final int TARGET_SCORE = 10000;
     private static final int OPENING_SCORE = 600;
 
@@ -65,6 +65,12 @@ final class GameDatabase extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE score_entries ADD COLUMN failure_marks " +
                     "INTEGER NOT NULL DEFAULT 0");
             db.execSQL("UPDATE players SET opened=1");
+        }
+        if (oldVersion < 4) {
+            db.execSQL("UPDATE players SET opened=0 WHERE COALESCE(" +
+                    "(SELECT SUM(e.points) FROM score_entries e " +
+                    "WHERE e.player_id=players.id " +
+                    "AND e.kind NOT IN ('legacy_theft','opening_ignored')), 0)<=0");
         }
     }
 
@@ -224,6 +230,7 @@ final class GameDatabase extends SQLiteOpenHelper {
                 }
             }
 
+            closePlayersAtOrBelowZero(db, gameId);
             ContentValues update = new ContentValues();
             update.put("updated_at", now);
             db.update("games", update, "id=?", new String[]{Long.toString(gameId)});
@@ -306,6 +313,14 @@ final class GameDatabase extends SQLiteOpenHelper {
         try (Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(playerId)})) {
             return cursor.moveToFirst() ? cursor.getInt(0) : 0;
         }
+    }
+
+    private void closePlayersAtOrBelowZero(SQLiteDatabase db, long gameId) {
+        String sql = "UPDATE players SET opened=0 WHERE game_id=? AND COALESCE(" +
+                "(SELECT SUM(e.points) FROM score_entries e " +
+                "WHERE e.player_id=players.id " +
+                "AND e.kind NOT IN ('legacy_theft','opening_ignored')), 0)<=0";
+        db.execSQL(sql, new Object[]{gameId});
     }
 
     private List<Long> playersAtScore(SQLiteDatabase db, long gameId, long playerId, int score) {
@@ -392,6 +407,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             }
             db.delete("score_entries", "id=? AND game_id=?",
                     new String[]{Long.toString(entryId), Long.toString(gameId)});
+            closePlayersAtOrBelowZero(db, gameId);
             long winnerId = -1;
             String winnerSql = "SELECT p.id FROM players p LEFT JOIN score_entries e " +
                     "ON e.player_id=p.id AND e.kind NOT IN ('legacy_theft','opening_ignored') " +
