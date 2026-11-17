@@ -11,7 +11,7 @@ suivi du jeu.
 |---|---|
 | Plateforme | Android |
 | Joueurs | De 2 à 8 |
-| Version actuelle | 1.9 |
+| Version actuelle | 1.9.1 |
 | Langues | Français, anglais et espagnol |
 | Version minimale d’Android | Android 6.0 (API 23) |
 
@@ -46,14 +46,14 @@ l’application sont décrites dans [REGLES.md](./REGLES.md).
 
 La version courante est disponible ici :
 
-**[Télécharger l’APK de test 1.9](https://github.com/furcy75/Jeu_des_10000/releases/download/v1.9/jeu-des-10000-v1.9-debug.apk)**
+**[Télécharger l’APK de test 1.9.1](https://github.com/furcy75/Jeu_des_10000/releases/download/v1.9.1/jeu-des-10000-v1.9.1-debug.apk)**
 
 Il s’agit d’un APK **debug**, destiné aux tests et non signé pour une
 distribution de production. Pour l’installer avec Android Debug Bridge (ADB),
 connectez un appareil Android avec le débogage USB activé, puis lancez :
 
 ```sh
-adb install -r apk/jeu-des-10000-v1.9-debug.apk
+adb install -r apk/jeu-des-10000-v1.9.1-debug.apk
 ```
 
 Les anciennes versions de test sont conservées dans [`apk/`](./apk/).

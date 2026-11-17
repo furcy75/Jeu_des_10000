@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.NumberPicker;
 import android.widget.ScrollView;
@@ -671,9 +672,32 @@ public final class MainActivity extends Activity {
             String title = t("game") + " · " +
                     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale())
                             .format(new Date(game.createdAt));
-            button(layout, title + "\n" + status, false, () -> showGame(game.id));
-            button(layout, game.status.equals("finished") ? t("delete_game") : t("abandon_game"),
-                    false, () -> confirmDeleteGame(game.id));
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+            rowParams.setMargins(0, dp(7), 0, dp(7));
+            layout.addView(row, rowParams);
+
+            TextView gameButton = text(title + "\n" + status, 15, GREEN, true);
+            gameButton.setGravity(Gravity.CENTER_VERTICAL);
+            gameButton.setMinHeight(dp(56));
+            gameButton.setPadding(dp(16), dp(10), dp(12), dp(10));
+            gameButton.setBackground(round(WHITE, 14, LINE));
+            row.addView(gameButton, new LinearLayout.LayoutParams(0, -2, 1));
+            gameButton.setOnClickListener(v -> showGame(game.id));
+
+            ImageButton deleteButton = new ImageButton(this);
+            deleteButton.setImageResource(R.drawable.ic_delete);
+            deleteButton.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+            deleteButton.setPadding(dp(13), dp(13), dp(13), dp(13));
+            deleteButton.setBackground(round(WHITE, 14, LINE));
+            deleteButton.setContentDescription(game.status.equals("finished") ?
+                    t("delete_game") : t("abandon_game"));
+            LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(
+                    dp(56), dp(56));
+            deleteParams.setMargins(dp(8), 0, 0, 0);
+            row.addView(deleteButton, deleteParams);
+            deleteButton.setOnClickListener(v -> confirmDeleteGame(game.id));
         }
         button(layout, t("back"), false, this::showHome);
         setScreen(layout);
