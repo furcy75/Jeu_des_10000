@@ -76,6 +76,7 @@ public final class MainActivity extends Activity {
         TEXT.put("enter_points", new String[]{"Saisissez un nombre de points différent de zéro.", "Enter a non-zero number of points.", "Introduce una cantidad de puntos distinta de cero."});
         TEXT.put("wins", new String[]{"Victoire de", "Winner:", "Ganador:"});
         TEXT.put("finished", new String[]{"Partie terminée", "Game finished", "Partida terminada"});
+        TEXT.put("history_winner", new String[]{"Partie terminée · Vainqueur : ", "Finished · Winner: ", "Partida terminada · Ganador: "});
         TEXT.put("ongoing", new String[]{"En cours", "In progress", "En curso"});
         TEXT.put("no_history", new String[]{"Aucune partie enregistrée.", "No games recorded.", "No hay partidas guardadas."});
         TEXT.put("game", new String[]{"Partie", "Game", "Partida"});
@@ -83,6 +84,13 @@ public final class MainActivity extends Activity {
         TEXT.put("correction", new String[]{"Correction", "Correction", "Corrección"});
         TEXT.put("points", new String[]{"points", "points", "puntos"});
         TEXT.put("theft", new String[]{"Vol de points", "Points stolen", "Robo de puntos"});
+        TEXT.put("theft_popup_title", new String[]{"Vol de points", "Points stolen", "Robo de puntos"});
+        TEXT.put("theft_popup_intro", new String[]{"Égalité : les points suivants sont retirés :", "Tie: the following points are removed:", "Empate: se quitan los siguientes puntos:"});
+        TEXT.put("theft_popup_item", new String[]{
+                "%1$s rejoint le total de %2$s : %2$s perd %3$s points.",
+                "%1$s reaches %2$s's total: %2$s loses %3$s points.",
+                "%1$s alcanza el total de %2$s: %2$s pierde %3$s puntos."
+        });
         TEXT.put("opening_ignored", new String[]{"Ouverture non atteinte (score ignoré)", "Opening threshold missed (score ignored)", "No alcanzó el mínimo de apertura (puntuación ignorada)"});
         TEXT.put("legacy_theft", new String[]{"Ancien score annulé", "Previous score voided", "Puntuación anterior anulada"});
         TEXT.put("three_failures", new String[]{"Perte après 3 échecs", "Loss after 3 failures", "Pérdida tras 3 fallos"});
@@ -403,15 +411,15 @@ public final class MainActivity extends Activity {
     private void showGame(long gameId) {
         currentGameId = gameId;
         boolean wasFinished = database.isFinished(gameId);
-        if (database.resolveExistingTies(gameId) > 0) {
-            toast(t("tie_message") + " " + t("cascade_message"));
-        }
-        if (!wasFinished) checkWinner(gameId);
+        List<GameDatabase.Theft> thefts = database.resolveExistingTies(gameId);
+        boolean winnerShown = !wasFinished && checkWinner(gameId, thefts);
+        if (!winnerShown && !thefts.isEmpty()) showTheftPopup(thefts);
         List<GameDatabase.Player> players = database.players(gameId);
         if (players.isEmpty()) {
             showHome();
             return;
         }
+        boolean gameFinished = database.isFinished(gameId);
         LinearLayout layout = page();
         layout.setPadding(dp(16), dp(8), dp(16), dp(20));
         int currentPosition = database.currentPlayerPosition(gameId, players.size());
@@ -424,7 +432,7 @@ public final class MainActivity extends Activity {
         target.setPadding(dp(14), dp(4), 0, dp(4));
         layout.addView(target);
 
-        if (database.isFinished(gameId)) {
+        if (gameFinished) {
             TextView finished = text(t("finished"), 15, GREEN, true);
             finished.setPadding(0, dp(18), 0, dp(8));
             layout.addView(finished);
@@ -468,19 +476,17 @@ public final class MainActivity extends Activity {
                             message += " " + (result.failurePenalty ? t("three_failures_message") :
                                     t("no_score_to_remove"));
                         }
-                        if (result.tiedPlayers > 0) message += " " + t("cascade_message");
                         toast(message);
                     } else if (result.openingRejected) {
                         toast(t("need_600"));
-                    } else if (result.tiedPlayers > 0) {
-                        toast(t("tie_message") + " " + t("cascade_message"));
-                    } else {
+                    } else if (result.thefts.isEmpty()) {
                         toast(t("entry_saved"));
                     }
                     if (amount > 0) {
                         database.advanceTurn(gameId, playerPosition, players.size());
                     }
-                    checkWinner(gameId);
+                    boolean winnerAlertShown = checkWinner(gameId, result.thefts);
+                    if (!winnerAlertShown && !result.thefts.isEmpty()) showTheftPopup(result.thefts);
                     showGame(gameId);
                 } catch (NumberFormatException exception) {
                     toast(t("enter_points"));
@@ -499,8 +505,8 @@ public final class MainActivity extends Activity {
                 GameDatabase.Player selected = players.get(playerPosition);
                 GameDatabase.EntryResult result = database.addEntry(gameId, selected.id, 0, "failure");
                 database.advanceTurn(gameId, playerPosition, players.size());
-                if (result.tiedPlayers > 0) {
-                    toast(t("cascade_message"));
+                if (!result.thefts.isEmpty()) {
+                    showTheftPopup(result.thefts);
                 } else if (!result.failureThresholdReached) {
                     toast(t("entry_saved"));
                 } else {
@@ -567,11 +573,13 @@ public final class MainActivity extends Activity {
             View divider = new View(this);
             divider.setBackgroundColor(LINE);
             layout.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
-            TextView undo = text(t("undo"), 14, GREEN, true);
-            undo.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-            undo.setPadding(0, dp(8), 0, dp(4));
-            layout.addView(undo);
-            undo.setOnClickListener(v -> confirmDelete(entry.id, gameId));
+            if (!gameFinished) {
+                TextView undo = text(t("undo"), 14, GREEN, true);
+                undo.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+                undo.setPadding(0, dp(8), 0, dp(4));
+                layout.addView(undo);
+                undo.setOnClickListener(v -> confirmDelete(entry.id, gameId));
+            }
         }
         button(layout, t("back"), false, this::showHome);
         setScreen(layout);
@@ -593,19 +601,40 @@ public final class MainActivity extends Activity {
         return result.toString();
     }
 
-    private void checkWinner(long gameId) {
+    private boolean checkWinner(long gameId, List<GameDatabase.Theft> thefts) {
         List<GameDatabase.Player> players = database.players(gameId);
         for (GameDatabase.Player player : players) {
             if (player.score == TARGET_SCORE) {
                 database.finishGame(gameId, player.id);
+                String message = t("wins") + " " + player.name + "!";
+                if (!thefts.isEmpty()) message += "\n\n" + theftPopupMessage(thefts);
                 new AlertDialog.Builder(this)
                         .setTitle(t("finished"))
-                        .setMessage(t("wins") + " " + player.name + "!")
+                        .setMessage(message)
                         .setPositiveButton("OK", (dialog, which) -> showGame(gameId))
                         .show();
-                return;
+                return true;
             }
         }
+        return false;
+    }
+
+    private String theftPopupMessage(List<GameDatabase.Theft> thefts) {
+        StringBuilder message = new StringBuilder(t("theft_popup_intro"));
+        for (GameDatabase.Theft theft : thefts) {
+            message.append("\n\n").append(String.format(locale(), t("theft_popup_item"),
+                    theft.playerWhoReachedTotal, theft.playerWhoLostPoints,
+                    formatScore(theft.pointsRemoved)));
+        }
+        return message.toString();
+    }
+
+    private void showTheftPopup(List<GameDatabase.Theft> thefts) {
+        new AlertDialog.Builder(this)
+                .setTitle(t("theft_popup_title"))
+                .setMessage(theftPopupMessage(thefts))
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private void confirmDelete(long entryId, long gameId) {
@@ -613,8 +642,11 @@ public final class MainActivity extends Activity {
                 .setMessage(t("confirm_undo"))
                 .setNegativeButton(t("cancel"), null)
                 .setPositiveButton(t("confirm"), (dialog, which) -> {
-                    database.deleteEntry(entryId, gameId);
-                    showGame(gameId);
+                    if (database.deleteEntry(entryId, gameId)) {
+                        showGame(gameId);
+                    } else {
+                        toast(t("finished"));
+                    }
                 })
                 .show();
     }
@@ -625,8 +657,8 @@ public final class MainActivity extends Activity {
         List<GameDatabase.Game> games = database.games(null, 30);
         if (games.isEmpty()) layout.addView(text(t("no_history"), 15, MUTED, false));
         for (GameDatabase.Game game : games) {
-            String status = game.status.equals("finished") ? t("wins") + " " +
-                    database.playerName(game.winnerId) : t("ongoing");
+            String status = game.status.equals("finished") ?
+                    t("history_winner") + database.playerName(game.winnerId) : t("ongoing");
             String title = t("game") + " · " +
                     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale())
                             .format(new Date(game.createdAt));

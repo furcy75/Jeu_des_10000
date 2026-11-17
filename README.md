@@ -7,7 +7,7 @@ base SQLite privée de l'application sur le téléphone.
 ## Fonctionnalités
 
 - Reprendre la partie en cours ou commencer une partie de 2 à 8 joueurs.
-- Consulter les parties récentes et leurs vainqueurs.
+- Consulter les parties récentes, leur état et le nom du vainqueur ; une partie terminée ne peut plus être reprise.
 - Changer la langue depuis le drapeau en haut à droite de l'accueil.
 - Gagner en atteignant exactement 10 000 points ; tout dépassement compte comme un échec.
 - Exiger 600 points en un tour pour entrer, puis à nouveau si le total retombe à 0 ou moins.
@@ -15,6 +15,7 @@ base SQLite privée de l'application sur le téléphone.
 - Passer automatiquement au joueur suivant après un score ou un échec.
 - Suivre les échecs par palier ; au troisième, retirer le gain de ce palier.
 - En cas d'égalité, retirer en cascade le dernier gain des adversaires concernés, y compris à la reprise d'une partie enregistrée.
+- Afficher un récapitulatif des vols de points avec les joueurs concernés et les montants retirés.
 - Voir les paliers les plus récents en premier, avec le total atteint.
 - Toucher un joueur pour consulter son détail, même si ce n'est pas son tour.
 - Consulter l'évolution des scores et les totaux après chaque saisie.
@@ -33,14 +34,14 @@ racine du projet :
 
 L'APK de test est généré dans `app/build/outputs/apk/debug/app-debug.apk`.
 Une copie de l'APK debug est également conservée dans le dépôt :
-`apk/jeu-des-10000-v1.7-debug.apk`. Les versions précédentes restent
+`apk/jeu-des-10000-v1.8-debug.apk`. Les versions précédentes restent
 archivées dans `apk/`. Il s'agit d'une version de test, pas d'un APK de
 production signé.
 
 Pour installer la copie conservée sur un appareil connecté avec ADB :
 
 ```sh
-adb install -r apk/jeu-des-10000-v1.7-debug.apk
+adb install -r apk/jeu-des-10000-v1.8-debug.apk
 ```
 
 Le projet utilise le plugin Android Gradle et son wrapper Gradle ; Gradle peut

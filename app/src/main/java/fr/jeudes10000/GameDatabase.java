@@ -201,7 +201,7 @@ final class GameDatabase extends SQLiteOpenHelper {
         boolean failurePenalty = false;
         boolean exactGoalFailure = false;
         boolean resolveTies = false;
-        int tiedPlayers = 0;
+        List<Theft> thefts = new ArrayList<>();
         try {
             String storedKind = kind;
             int storedPoints = points;
@@ -246,7 +246,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             }
 
             if (resolveTies) {
-                tiedPlayers = applyTieCascade(db, gameId, playerId, now);
+                thefts = applyTieCascade(db, gameId, playerId, now);
             }
 
             closePlayersAtOrBelowZero(db, gameId);
@@ -257,7 +257,7 @@ final class GameDatabase extends SQLiteOpenHelper {
         } finally {
             db.endTransaction();
         }
-        return new EntryResult(openingRejected, tiedPlayers,
+        return new EntryResult(openingRejected, thefts,
                 failureThresholdReached, failurePenalty, exactGoalFailure);
     }
 
@@ -293,7 +293,8 @@ final class GameDatabase extends SQLiteOpenHelper {
 
         boolean thresholdReached = updatedMarks >= 3;
         boolean penaltyApplied = thresholdReached &&
-                addPenaltyForScore(db, gameId, playerId, palierId, "three_failures", createdAt);
+                addPenaltyForScore(db, gameId, playerId, palierId,
+                        "three_failures", createdAt) > 0;
         return new FailureResult(thresholdReached, penaltyApplied, palierId);
     }
 
@@ -304,12 +305,19 @@ final class GameDatabase extends SQLiteOpenHelper {
         }
     }
 
-    int resolveExistingTies(long gameId) {
+    List<Theft> resolveExistingTies(long gameId) {
         SQLiteDatabase db = getWritableDatabase();
         long now = System.currentTimeMillis();
-        int penalties = 0;
+        List<Theft> thefts = new ArrayList<>();
         db.beginTransaction();
         try {
+            try (Cursor cursor = db.query("games", new String[]{"status"}, "id=?",
+                    new String[]{Long.toString(gameId)}, null, null, null)) {
+                if (cursor.moveToFirst() && cursor.getString(0).equals("finished")) {
+                    db.setTransactionSuccessful();
+                    return thefts;
+                }
+            }
             List<Long> playerIds = new ArrayList<>();
             // Reconcile old ties from the most recent score-changing player first.
             String playerOrder = "(SELECT COALESCE(MAX(e.id), 0) FROM score_entries e " +
@@ -321,7 +329,7 @@ final class GameDatabase extends SQLiteOpenHelper {
                 while (cursor.moveToNext()) playerIds.add(cursor.getLong(0));
             }
             for (long playerId : playerIds) {
-                penalties += applyTieCascade(db, gameId, playerId, now);
+                thefts.addAll(applyTieCascade(db, gameId, playerId, now));
             }
             closePlayersAtOrBelowZero(db, gameId);
             long winnerId = winnerIdForGame(db, gameId);
@@ -335,7 +343,7 @@ final class GameDatabase extends SQLiteOpenHelper {
                             currentWinnerId != winnerId;
                 }
             }
-            if (penalties > 0 || outcomeChanged) {
+            if (!thefts.isEmpty() || outcomeChanged) {
                 ContentValues update = new ContentValues();
                 update.put("updated_at", now);
                 if (winnerId >= 0) {
@@ -351,28 +359,31 @@ final class GameDatabase extends SQLiteOpenHelper {
         } finally {
             db.endTransaction();
         }
-        return penalties;
+        return thefts;
     }
 
-    private int applyTieCascade(SQLiteDatabase db, long gameId, long firstPlayerId,
-                                long createdAt) {
+    private List<Theft> applyTieCascade(SQLiteDatabase db, long gameId, long firstPlayerId,
+                                        long createdAt) {
         ArrayDeque<Long> changedPlayers = new ArrayDeque<>();
         changedPlayers.add(firstPlayerId);
-        int penalties = 0;
+        List<Theft> thefts = new ArrayList<>();
         // A score tier can be stolen only once, so each queued step consumes a finite tier.
         while (!changedPlayers.isEmpty()) {
             long playerId = changedPlayers.removeFirst();
             int score = playerScore(db, gameId, playerId);
             for (long tiedPlayerId : playersAtScore(db, gameId, playerId, score)) {
                 long palierId = latestActiveScoreId(db, gameId, tiedPlayerId);
-                if (palierId >= 0 && addPenaltyForScore(
-                        db, gameId, tiedPlayerId, palierId, "theft", createdAt)) {
-                    penalties++;
+                if (palierId >= 0) {
+                    int pointsRemoved = addPenaltyForScore(
+                            db, gameId, tiedPlayerId, palierId, "theft", createdAt);
+                    if (pointsRemoved <= 0) continue;
+                    thefts.add(new Theft(playerName(db, playerId),
+                            playerName(db, tiedPlayerId), pointsRemoved));
                     changedPlayers.addLast(tiedPlayerId);
                 }
             }
         }
-        return penalties;
+        return thefts;
     }
 
     private int playerScore(SQLiteDatabase db, long gameId, long playerId) {
@@ -432,14 +443,14 @@ final class GameDatabase extends SQLiteOpenHelper {
         }
     }
 
-    private boolean addPenaltyForScore(SQLiteDatabase db, long gameId, long playerId,
-                                       long scoreId, String kind, long createdAt) {
+    private int addPenaltyForScore(SQLiteDatabase db, long gameId, long playerId,
+                                   long scoreId, String kind, long createdAt) {
         int points;
         try (Cursor cursor = db.query("score_entries", new String[]{"points"},
                 "id=? AND game_id=? AND player_id=? AND kind='score'",
                 new String[]{Long.toString(scoreId), Long.toString(gameId),
                         Long.toString(playerId)}, null, null, null)) {
-            if (!cursor.moveToFirst()) return false;
+            if (!cursor.moveToFirst()) return 0;
             points = cursor.getInt(0);
         }
         ContentValues penalty = new ContentValues();
@@ -450,7 +461,7 @@ final class GameDatabase extends SQLiteOpenHelper {
         penalty.put("created_at", createdAt);
         penalty.put("source_entry_id", scoreId);
         db.insertOrThrow("score_entries", null, penalty);
-        return true;
+        return points;
     }
 
     int currentPlayerPosition(long gameId, int playerCount) {
@@ -472,10 +483,14 @@ final class GameDatabase extends SQLiteOpenHelper {
                 new String[]{Long.toString(gameId)});
     }
 
-    void deleteEntry(long entryId, long gameId) {
+    boolean deleteEntry(long entryId, long gameId) {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         try {
+            if (isFinished(gameId)) {
+                db.setTransactionSuccessful();
+                return false;
+            }
             try (Cursor cursor = db.query("score_entries",
                     new String[]{"kind", "player_id", "source_entry_id"},
                     "id=? AND game_id=?", new String[]{Long.toString(entryId), Long.toString(gameId)},
@@ -504,6 +519,7 @@ final class GameDatabase extends SQLiteOpenHelper {
             }
             db.update("games", update, "id=?", new String[]{Long.toString(gameId)});
             db.setTransactionSuccessful();
+            return true;
         } finally {
             db.endTransaction();
         }
@@ -538,7 +554,11 @@ final class GameDatabase extends SQLiteOpenHelper {
     }
 
     String playerName(long playerId) {
-        try (Cursor cursor = getReadableDatabase().query("players", new String[]{"name"},
+        return playerName(getReadableDatabase(), playerId);
+    }
+
+    private String playerName(SQLiteDatabase db, long playerId) {
+        try (Cursor cursor = db.query("players", new String[]{"name"},
                 "id=?", new String[]{Long.toString(playerId)}, null, null, null)) {
             return cursor.moveToFirst() ? cursor.getString(0) : "";
         }
@@ -592,19 +612,31 @@ final class GameDatabase extends SQLiteOpenHelper {
 
     static final class EntryResult {
         final boolean openingRejected;
-        final int tiedPlayers;
+        final List<Theft> thefts;
         final boolean failureThresholdReached;
         final boolean failurePenalty;
         final boolean exactGoalFailure;
 
-        EntryResult(boolean openingRejected, int tiedPlayers,
+        EntryResult(boolean openingRejected, List<Theft> thefts,
                     boolean failureThresholdReached, boolean failurePenalty,
                     boolean exactGoalFailure) {
             this.openingRejected = openingRejected;
-            this.tiedPlayers = tiedPlayers;
+            this.thefts = thefts;
             this.failureThresholdReached = failureThresholdReached;
             this.failurePenalty = failurePenalty;
             this.exactGoalFailure = exactGoalFailure;
+        }
+    }
+
+    static final class Theft {
+        final String playerWhoReachedTotal;
+        final String playerWhoLostPoints;
+        final int pointsRemoved;
+
+        Theft(String playerWhoReachedTotal, String playerWhoLostPoints, int pointsRemoved) {
+            this.playerWhoReachedTotal = playerWhoReachedTotal;
+            this.playerWhoLostPoints = playerWhoLostPoints;
+            this.pointsRemoved = pointsRemoved;
         }
     }
 
